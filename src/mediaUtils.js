@@ -8,27 +8,15 @@ import { writeOutput } from './outputWriter.js';
 import { transcribeAudioChunks } from './transcriber.js';
 
 export async function processMedia(inputFile, chunkDuration, outputFormat, outputFileName, outputDir, config) {
-    const outputFilePath = `${outputDir}/${outputFileName}.${outputFormat}`;
-    let wavFilePath = '';
-
-    if (
-        config.skipIfOutputExist &&
-        (await fs
-            .access(outputFilePath)
-            .then(() => true)
-            .catch(() => false))
-    ) {
-        logger.info(`Skipping ${inputFile} because output already exists.`);
-        return;
-    }
+    const tempDir = `${outputDir}/temp`;
 
     try {
         logger.info(`Starting processing for: ${inputFile}`);
 
-        wavFilePath = await downloadMedia(inputFile, config.downloadRetries, config.saveYtDlpResponses);
+        const wavFilePath = await downloadMedia(inputFile, config.downloadRetries, config.saveYtDlpResponses);
         logger.info(`WAV file created at: ${wavFilePath}`);
 
-        const chunkFiles = await splitAudio(wavFilePath, chunkDuration, config.minWordsPerSegment);
+        const chunkFiles = await splitAudio(wavFilePath, chunkDuration);
         if (!chunkFiles.length) {
             throw new Error('No chunks were created during the audio splitting process.');
         }
@@ -36,17 +24,20 @@ export async function processMedia(inputFile, chunkDuration, outputFormat, outpu
         logger.info(`Number of chunks created: ${chunkFiles.length}`);
         const transcripts = await transcribeAudioChunks(chunkFiles, config.minWordsPerSegment);
 
-        await writeOutput(transcripts, outputFormat, outputFileName, outputDir);
+        if (transcripts.length) {
+            await writeOutput(transcripts, outputFormat, outputFileName, outputDir);
+        } else {
+            logger.warn(`No transcriptions to write to output.`);
+        }
     } catch (error) {
         logger.error(`An error occurred while processing ${inputFile}: ${error.message}`);
     } finally {
-        if (!config.saveFilesBeforeCompact && wavFilePath) {
-            try {
-                await fs.rm(wavFilePath, { recursive: true, force: true });
-                logger.info('Temporary files cleaned up.');
-            } catch (cleanupError) {
-                logger.error(`Failed to clean up temporary files: ${cleanupError.message}`);
-            }
+        // Cleanup the temporary files
+        try {
+            await fs.rm(tempDir, { recursive: true, force: true });
+            logger.info('Temporary files cleaned up.');
+        } catch (cleanupError) {
+            logger.error(`Failed to clean up temporary files: ${cleanupError.message}`);
         }
     }
 }
