@@ -1,4 +1,6 @@
 import eslint from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import parser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 import eslintPluginPrettier from 'eslint-plugin-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
@@ -7,9 +9,10 @@ import vitestGlobals from 'eslint-plugin-vitest-globals';
 
 export default [
     {
-        files: ['**/*.js'],
+        files: ['**/*.ts'],
         languageOptions: {
             ecmaVersion: 'latest',
+            parser: parser,
             sourceType: 'module',
             globals: {
                 Atomics: 'readonly',
@@ -18,6 +21,7 @@ export default [
             },
         },
         plugins: {
+            '@typescript-eslint': tseslint,
             prettier: eslintPluginPrettier,
             'simple-import-sort': simpleImportSort,
             vitest,
@@ -25,6 +29,7 @@ export default [
         },
         rules: {
             ...eslint.configs.recommended.rules,
+            ...tseslint.configs.recommended.rules,
             'prettier/prettier': ['error'],
             'no-console': 'off',
             'no-plusplus': 'off',

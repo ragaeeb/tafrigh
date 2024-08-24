@@ -1,7 +1,9 @@
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
+import path from 'path';
+import process from 'process';
 
 import { splitAudio } from './audioSplitter.js';
-import { downloadMedia } from './downloader.js';
+import { convertToWav, splitAudioFile } from './ffmpegUtils.js';
 import { filterMediaFiles } from './fileUtils.js';
 import logger from './logger.js';
 import { writeOutput } from './outputWriter.js';
@@ -13,16 +15,34 @@ export async function processMedia(inputFile, chunkDuration, outputFormat, outpu
     try {
         logger.info(`Starting processing for: ${inputFile}`);
 
-        const wavFilePath = await downloadMedia(inputFile, config.downloadRetries, config.saveYtDlpResponses);
+        const tempWavDir = path.join(process.cwd(), 'temp');
+        await fs.mkdir(tempWavDir, { recursive: true });
+
+        let wavFilePath;
+
+        if (inputFile.endsWith('.mp3') || inputFile.endsWith('.mp4')) {
+            logger.info(`Converting local file to WAV: ${inputFile}`);
+            wavFilePath = await convertToWav(inputFile, tempWavDir);
+        } else {
+            const errorMsg = 'Unsupported file format or invalid URL';
+            logger.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
         logger.info(`WAV file created at: ${wavFilePath}`);
 
-        const chunkFiles = await splitAudio(wavFilePath, chunkDuration);
+        // Use the splitAudioFile function to create 10-second chunks
+        await splitAudioFile(wavFilePath, 10, tempDir);
+        const chunkFiles = await fs.readdir(tempDir);
         if (!chunkFiles.length) {
             throw new Error('No chunks were created during the audio splitting process.');
         }
 
         logger.info(`Number of chunks created: ${chunkFiles.length}`);
-        const transcripts = await transcribeAudioChunks(chunkFiles, config.minWordsPerSegment);
+        const transcripts = await transcribeAudioChunks(
+            chunkFiles.map((file) => path.join(tempDir, file)),
+            config.minWordsPerSegment,
+        );
 
         if (transcripts.length) {
             await writeOutput(transcripts, outputFormat, outputFileName, outputDir);
@@ -38,21 +58,6 @@ export async function processMedia(inputFile, chunkDuration, outputFormat, outpu
             logger.info('Temporary files cleaned up.');
         } catch (cleanupError) {
             logger.error(`Failed to clean up temporary files: ${cleanupError.message}`);
-        }
-    }
-}
-
-export async function processFiles(files, chunkDuration, outputFormat, outputFileName, outputDir, config) {
-    for (const inputFile of files) {
-        const inputStat = await fs.stat(inputFile).catch(() => null);
-        if (inputStat && inputStat.isDirectory()) {
-            const filesInDir = await fs.readdir(inputFile);
-            const mediaFiles = filterMediaFiles(filesInDir.map((file) => `${inputFile}/${file}`));
-            for (const mediaFile of mediaFiles) {
-                await processMedia(mediaFile, chunkDuration, outputFormat, outputFileName, outputDir, config);
-            }
-        } else {
-            await processMedia(inputFile, chunkDuration, outputFormat, outputFileName, outputDir, config);
         }
     }
 }
