@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "axios": "^1.7.4",
+    "axios": "^1.7.6",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
     "mime-types": "^2.1.35",
@@ -32,13 +32,13 @@
   "author": "Ragaeeb Haq",
   "license": "MIT",
   "devDependencies": {
-    "@eslint/js": "^9.9.0",
+    "@eslint/js": "^9.9.1",
     "@parcel/packager-ts": "^2.12.0",
     "@parcel/transformer-typescript-types": "^2.12.0",
     "@types/eslint__js": "^8.42.3",
-    "@types/fluent-ffmpeg": "^2.1.25",
+    "@types/fluent-ffmpeg": "^2.1.26",
     "@types/mime-types": "^2.1.4",
-    "@types/node": "^22.5.0",
+    "@types/node": "^22.5.1",
     "@types/pino": "^7.0.5",
     "@types/pino-pretty": "^5.0.0",
     "eslint": "^8.57.0",
@@ -50,7 +50,7 @@
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.2.0",
+    "typescript-eslint": "^8.3.0",
     "vitest": "^2.0.5"
   }
 }
