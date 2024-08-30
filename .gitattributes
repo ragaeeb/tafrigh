@@ -1,0 +1,2 @@
+testing/khutbah.wav filter=lfs diff=lfs merge=lfs -text
+testing/khutbah.mp3 filter=lfs diff=lfs merge=lfs -text

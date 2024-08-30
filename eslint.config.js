@@ -36,6 +36,7 @@ export default [
             'simple-import-sort/imports': 'error',
             'simple-import-sort/exports': 'error',
             radix: 'off',
+            '@typescript-eslint/no-explicit-any': 'off',
         },
     },
     {

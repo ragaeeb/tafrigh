@@ -42,3 +42,5 @@ export const getMediasToConvert = (mediaFiles: string[]): { waveFiles: string[];
 
     return { waveFiles, conversionNeeded };
 };
+
+export const fileExists = async (path: string) => !!(await fs.stat(path).catch(() => false));
