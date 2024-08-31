@@ -18,17 +18,16 @@ export interface SilenceDetectionOptions {
 
 export interface SplitOptions {
     chunkDuration?: number;
-    fileNameFormat?: string; // E.g., '%03d'
-    silenceDetection: SilenceDetectionOptions;
+    chunkMinThreshold?: number;
+    silenceDetection?: SilenceDetectionOptions;
+}
+
+export interface TimeRange {
+    start: number;
+    end: number;
 }
 
 export interface AudioChunk {
     filename: string;
-    start: number;
-    end: number;
-}
-
-export interface SilenceDetectionResult {
-    start: number;
-    end: number;
+    range: TimeRange;
 }

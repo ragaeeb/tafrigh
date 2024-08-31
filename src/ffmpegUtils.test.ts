@@ -2,23 +2,27 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { convertToWav, detectSilences, splitAudioFile } from './ffmpegUtils';
+import { convertToWav, detectSilences, getMediaDuration, splitAudioFile } from './ffmpegUtils';
 import { fileExists } from './io';
 
 describe('ffmpegUtils', () => {
+    let testFilePath;
+    let outputDir;
+
     beforeEach(() => {
         vi.clearAllMocks(); // Reset all mocks before each test
+        testFilePath = 'testing/khutbah.mp3';
+        outputDir = 'testing/output';
+    });
+
+    describe('getMediaDuration', () => {
+        it('should detect the duration of the media', async () => {
+            const result = await getMediaDuration('testing/khutbah.wav');
+            expect(result).toBeCloseTo(33.593469, 6);
+        });
     });
 
     describe('convertToWav', () => {
-        let testFilePath;
-        let outputDir;
-
-        beforeEach(() => {
-            testFilePath = 'testing/khutbah.mp3';
-            outputDir = 'testing/output';
-        });
-
         afterEach(async () => {
             await fs.rmdir(outputDir, { recursive: true });
         });
@@ -68,11 +72,13 @@ describe('ffmpegUtils', () => {
 
         it('should call ffmpeg with the right format', async () => {
             const mockToFormat = vi.spyOn(ffmpeg.prototype, 'toFormat');
+            const mockAudioChannels = vi.spyOn(ffmpeg.prototype, 'audioChannels');
             const mockSave = vi.spyOn(ffmpeg.prototype, 'save');
 
             await convertToWav(testFilePath, outputDir);
 
             expect(mockToFormat).toHaveBeenCalledWith('wav');
+            expect(mockAudioChannels).toHaveBeenCalledWith(1);
             expect(mockSave).toHaveBeenCalled();
         });
 
@@ -81,6 +87,9 @@ describe('ffmpegUtils', () => {
 
             const result = await fileExists(testFilePath);
             expect(result).toBe(true);
+
+            const duration = await getMediaDuration(testFilePath);
+            expect(duration).toBeCloseTo(33.5935, 3);
         });
 
         it('should call ffmpeg with the correct arguments when noiseReduction is enabled with default options', async () => {
@@ -111,37 +120,112 @@ describe('ffmpegUtils', () => {
 
     describe('detectSilences', () => {
         it('should detect silences for -25dB for 0.1s', async () => {
-            const result = await detectSilences('testing/khutbah.wav', { silenceThreshold: -25, silenceDuration: 0.1 });
+            const result = await detectSilences('testing/khutbah.wav', { silenceThreshold: -35, silenceDuration: 0.2 });
             expect(result).toEqual([
-                { start: 0, end: 0.910385 },
-                { start: 1.08195, end: 1.190431 },
-                { start: 1.27424, end: 1.502857 },
-                { start: 6.731519, end: 8.367029 },
-                { start: 11.587982, end: 11.721587 },
-                { start: 14.303401, end: 15.507438 },
-                { start: 18.023764, end: 19.172381 },
-                { start: 21.785488, end: 21.920091 },
-                { start: 23.636236, end: 24.577914 },
-                { start: 24.681678, end: 24.784082 },
-                { start: 27.331973, end: 27.435283 },
-                { start: 27.435329, end: 28.442358 },
-                { start: 29.723719, end: 29.845896 },
-                { start: 32.592971, end: 33.493288 },
+                { start: 0, end: 0.917551 },
+                { start: 1.258957, end: 1.50263 },
+                { start: 7.343764, end: 8.355329 },
+                { start: 14.573605, end: 14.872517 },
+                { start: 14.872562, end: 15.507075 },
+                { start: 18.28966, end: 18.541905 },
+                { start: 18.591066, end: 19.119955 },
+                { start: 23.876961, end: 24.123311 },
+                { start: 24.311701, end: 24.571837 },
+                { start: 27.561224, end: 27.952517 },
+                { start: 28.062132, end: 28.43356 },
+                { start: 33.169569, end: 33.384943 },
             ]);
         });
     });
 
     describe('splitAudio', () => {
-        it.only('should split the audio into 4 chunks', async () => {
-            const result = await splitAudioFile('testing/khutbah.wav', 'testing/output', {
+        beforeEach(() => {
+            testFilePath = 'testing/khutbah.wav';
+        });
+
+        afterEach(async () => {
+            await fs.rmdir(outputDir, { recursive: true });
+        });
+
+        it('should split the audio into 4 chunks', async () => {
+            const result = await splitAudioFile(testFilePath, outputDir, {
                 chunkDuration: 10,
-                fileNameFormat: 'chunk-%03d.wav',
+                chunkMinThreshold: 0.01,
                 silenceDetection: {
-                    silenceThreshold: -25,
-                    silenceDuration: 0.1,
+                    silenceThreshold: -35,
+                    silenceDuration: 0.2,
                 },
             });
-            expect(result).toEqual([]);
+
+            expect(result).toHaveLength(5);
+
+            expect(result[0].range.start).toBeCloseTo(0, 6);
+            expect(result[0].range.end).toBeCloseTo(7.343764, 6);
+            expect(result[0].filename).toEqual('testing/output/chunk-000.wav');
+            expect(await getMediaDuration(result[0].filename)).toBeCloseTo(7.343764, 4);
+
+            expect(result[1].range.start).toBeCloseTo(7.343764, 6);
+            expect(result[1].range.end).toBeCloseTo(14.872562, 6);
+            expect(result[1].filename).toEqual('testing/output/chunk-001.wav');
+            expect(await getMediaDuration(result[1].filename)).toBeCloseTo(7.528798, 4);
+
+            expect(result[2].range.start).toBeCloseTo(14.872562, 6);
+            expect(result[2].range.end).toBeCloseTo(24.311701, 6);
+            expect(result[2].filename).toEqual('testing/output/chunk-002.wav');
+            expect(await getMediaDuration(result[2].filename)).toBeCloseTo(9.439138, 4);
+
+            expect(result[3].range.start).toBeCloseTo(24.311701, 6);
+            expect(result[3].range.end).toBeCloseTo(33.169569, 6);
+            expect(result[3].filename).toEqual('testing/output/chunk-003.wav');
+            expect(await getMediaDuration(result[3].filename)).toBeCloseTo(8.857868, 4);
+
+            expect(result[4].range.start).toBeCloseTo(33.169569, 6);
+            expect(result[4].range.end).toBeCloseTo(33.593469, 6);
+            expect(result[4].filename).toEqual('testing/output/chunk-004.wav');
+            expect(await getMediaDuration(result[4].filename)).toBeCloseTo(0.4239, 4);
+        });
+
+        it('should filter out any chunks that are smaller than the threshold', async () => {
+            const result = await splitAudioFile(testFilePath, outputDir, {
+                chunkDuration: 10,
+                chunkMinThreshold: 1,
+                silenceDetection: {
+                    silenceThreshold: -35,
+                    silenceDuration: 0.2,
+                },
+            });
+
+            expect(result).toHaveLength(4);
+        });
+
+        it('should return an empty array if all the chunks are too short', async () => {
+            const result = await splitAudioFile(testFilePath, outputDir, {
+                chunkDuration: 0.5,
+                chunkMinThreshold: 1,
+                silenceDetection: {
+                    silenceThreshold: -35,
+                    silenceDuration: 0.2,
+                },
+            });
+
+            expect(result).toHaveLength(0);
+        });
+
+        it('should create 2 chunks', async () => {
+            const mockSetStartTime = vi.spyOn(ffmpeg.prototype, 'setStartTime');
+            const mockSetDuration = vi.spyOn(ffmpeg.prototype, 'setDuration');
+
+            const result = await splitAudioFile(testFilePath, outputDir, {
+                chunkDuration: 20,
+                chunkMinThreshold: 1,
+            });
+
+            expect(result).toHaveLength(2);
+
+            expect(mockSetStartTime).toHaveBeenCalledTimes(2);
+            expect(mockSetStartTime).toHaveBeenNthCalledWith(1, 0);
+
+            expect(mockSetDuration).toHaveBeenCalledTimes(2);
         });
     });
 });
