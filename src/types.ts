@@ -31,3 +31,8 @@ export interface AudioChunk {
     filename: string;
     range: TimeRange;
 }
+
+export interface Transcription {
+    range: TimeRange;
+    text: string;
+}
