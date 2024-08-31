@@ -3,41 +3,12 @@ import JSONStream from 'jsonstream-next';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
 
-interface PartialJsonObject {
-    [key: string]: any;
-}
-
 interface DictationOptions {
     apiKey: string;
     filePath: string;
 }
 
-async function* streamJsonResponses(readable: Readable): AsyncGenerator<PartialJsonObject, void, unknown> {
-    const parser = JSONStream.parse('*');
-    readable.pipe(parser);
-
-    let currentObject: PartialJsonObject = {};
-
-    for await (const chunk of parser) {
-        if (typeof chunk === 'object' && chunk !== null) {
-            Object.assign(currentObject, chunk);
-        } else if (typeof chunk === 'string') {
-            // Depending on your JSON structure, you may need to handle string chunks differently
-            if (!currentObject['text']) {
-                currentObject['text'] = chunk;
-            } else if (!currentObject['type']) {
-                currentObject['type'] = chunk;
-            }
-        }
-
-        if (currentObject['type'] && currentObject['text']) {
-            yield currentObject;
-            currentObject = {};
-        }
-    }
-}
-
-export async function dictation(options: DictationOptions): Promise<PartialJsonObject> {
+export async function dictation(options: DictationOptions): Promise<Record<string, any>> {
     const stream = fs.createReadStream(options.filePath);
 
     const response = await fetch('https://api.wit.ai/dictation?v=20240304', {
@@ -57,13 +28,23 @@ export async function dictation(options: DictationOptions): Promise<PartialJsonO
         throw new Error('Response body is null');
     }
 
-    const finalChunk = {};
+    const parser = JSONStream.parse('*');
+    (response.body as unknown as Readable).pipe(parser);
 
-    for await (const chunk of streamJsonResponses(response.body as unknown as Readable)) {
-        if (chunk['type'] === 'FINAL_TRANSCRIPTION' && chunk['text']) {
-            Object.assign(finalChunk, chunk);
+    let currentObject: Record<string, any> = {};
+
+    for await (const chunk of parser) {
+        if (chunk === true) {
+            // this is sent just before the final transcription is sent, so let's reset our currentObject
+            currentObject = {};
+        } else {
+            if (typeof chunk === 'string' && chunk !== 'FINAL_TRANSCRIPTION') {
+                currentObject['text'] = chunk;
+            } else if (chunk && typeof chunk === 'object') {
+                Object.assign(currentObject, chunk);
+            }
         }
     }
 
-    return finalChunk;
+    return currentObject;
 }
