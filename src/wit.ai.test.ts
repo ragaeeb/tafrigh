@@ -1,97 +1,137 @@
+import axios from 'axios';
 import fs from 'fs';
-import fetch from 'node-fetch';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import JSONStream from 'jsonstream-next';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { speechToText } from './wit.ai';
+import { dictation, speechToText } from './wit.ai';
 
+vi.mock('axios');
 vi.mock('fs');
-vi.mock('node-fetch', () => ({
-    default: vi.fn(),
-}));
+vi.mock('jsonstream-next');
 
 describe('wit.ai', () => {
+    const mockOptions = { apiKey: 'test-api-key' };
+    const mockFilePath = 'test-file.wav';
+
+    beforeEach(() => {
+        vi.resetAllMocks();
+    });
+
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
     describe('speechToText', () => {
-        const mockApiKey = 'mock-api-key';
-        const mockFilePath = 'mock-file-path.wav';
-        const mockOptions = { apiKey: mockApiKey };
-
-        beforeEach(() => {
-            vi.clearAllMocks(); // Reset all mocks before each test
-        });
-
-        it('should call the Wit.ai API with the correct parameters and return the text', async () => {
-            const mockStream = 'mock-stream';
+        it('should process WAV file correctly', async () => {
             const mockResponse = {
-                ok: true,
-                json: vi.fn().mockResolvedValue({ text: 'Hello World' }),
+                data: {
+                    text: 'Hello, world!',
+                    speech: {
+                        confidence: 0.95,
+                        tokens: [
+                            { confidence: 0.98, end: 1, start: 0, token: 'Hello' },
+                            { confidence: 0.92, end: 2, start: 1, token: 'world' },
+                        ],
+                    },
+                },
             };
 
-            (fs.createReadStream as unknown as any).mockReturnValue(mockStream);
-            (fetch as any).mockResolvedValue(mockResponse);
+            (axios.post as any).mockResolvedValue(mockResponse);
+            (fs.createReadStream as any).mockReturnValue('mock-stream');
 
             const result = await speechToText(mockFilePath, mockOptions);
 
-            expect(fs.createReadStream).toHaveBeenCalledWith(mockFilePath);
-            expect(fetch).toHaveBeenCalledWith('https://api.wit.ai/speech', {
-                method: 'POST',
+            expect(axios.post).toHaveBeenCalledWith('https://api.wit.ai/speech', 'mock-stream', {
                 headers: {
+                    Authorization: 'Bearer test-api-key',
                     'Content-Type': 'audio/wav',
                     Accept: 'application/vnd.wit.20200513+json',
-                    Authorization: `Bearer ${mockApiKey}`,
                 },
-                body: mockStream,
+                responseType: 'json',
             });
-            expect(mockResponse.json).toHaveBeenCalled();
-            expect(result).toEqual({ text: 'Hello World' });
-        });
 
-        it('should throw an error if the API response is not ok', async () => {
-            const mockStream = 'mock-stream';
-            const mockResponse = {
-                ok: false,
-                status: 400,
-            };
-
-            (fs.createReadStream as any).mockReturnValue(mockStream);
-            (fetch as any).mockResolvedValue(mockResponse);
-
-            await expect(speechToText(mockFilePath, mockOptions)).rejects.toThrow('HTTP error! status: 400');
-
-            expect(fs.createReadStream).toHaveBeenCalledWith(mockFilePath);
-            expect(fetch).toHaveBeenCalledWith('https://api.wit.ai/speech', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'audio/wav',
-                    Accept: 'application/vnd.wit.20200513+json',
-                    Authorization: `Bearer ${mockApiKey}`,
-                },
-                body: mockStream,
+            expect(result).toEqual({
+                text: 'Hello, world!',
+                confidence: 0.95,
+                tokens: [
+                    { confidence: 0.98, end: 1, start: 0, token: 'Hello' },
+                    { confidence: 0.92, end: 2, start: 1, token: 'world' },
+                ],
             });
         });
 
-        it('should handle JSON parsing errors gracefully', async () => {
-            const mockStream = 'mock-stream';
-            const mockResponse = {
-                ok: true,
-                json: vi.fn().mockRejectedValue(new Error('JSON parsing error')),
+        it('should handle MP3 file correctly', async () => {
+            const mp3FilePath = 'test-file.mp3';
+            const mockResponse = { data: { text: 'MP3 audio' } };
+
+            (axios.post as any).mockResolvedValue(mockResponse);
+            (fs.createReadStream as any).mockReturnValue('mock-stream');
+
+            await speechToText(mp3FilePath, mockOptions);
+
+            expect(axios.post).toHaveBeenCalledWith(
+                'https://api.wit.ai/speech',
+                'mock-stream',
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        'Content-Type': 'audio/mpeg3',
+                    }),
+                }),
+            );
+        });
+
+        it('should handle errors', async () => {
+            (axios.post as any).mockRejectedValue(new Error('API Error'));
+
+            await expect(speechToText(mockFilePath, mockOptions)).rejects.toThrow('API Error');
+        });
+    });
+
+    describe('dictation', () => {
+        it('should process dictation correctly', async () => {
+            const mockStream = {
+                pipe: vi.fn(),
+                on: vi.fn(),
             };
 
-            (fs.createReadStream as any).mockReturnValue(mockStream);
-            (fetch as any).mockResolvedValue(mockResponse);
+            const mockParser = {
+                [Symbol.asyncIterator]: vi.fn().mockImplementation(function* () {
+                    yield 'PARTIAL_TRANSCRIPTION';
+                    yield { text: 'Hello2' };
+                    yield true;
+                    yield { text: 'Hello' };
+                    yield 'FINAL_TRANSCRIPTION';
+                    yield true;
+                    yield { text: 'world', confidence: 0.9 };
+                    yield 'FINAL_TRANSCRIPTION';
+                }),
+            };
 
-            await expect(speechToText(mockFilePath, mockOptions)).rejects.toThrow('JSON parsing error');
+            (axios.post as any).mockResolvedValue({ data: mockStream });
+            (JSONStream.parse as any).mockReturnValue(mockParser);
+            (fs.createReadStream as any).mockReturnValue('mock-stream');
 
-            expect(fs.createReadStream).toHaveBeenCalledWith(mockFilePath);
-            expect(fetch).toHaveBeenCalledWith('https://api.wit.ai/speech', {
-                method: 'POST',
+            const result = await dictation(mockFilePath, mockOptions);
+
+            expect(axios.post).toHaveBeenCalledWith('https://api.wit.ai/dictation?v=20240304', 'mock-stream', {
                 headers: {
+                    Authorization: 'Bearer test-api-key',
                     'Content-Type': 'audio/wav',
-                    Accept: 'application/vnd.wit.20200513+json',
-                    Authorization: `Bearer ${mockApiKey}`,
                 },
-                body: mockStream,
+                responseType: 'stream',
             });
-            expect(mockResponse.json).toHaveBeenCalled();
+
+            expect(result).toEqual({
+                tokens: [],
+                text: ' Hello world',
+                confidence: 0.9,
+            });
+        });
+
+        it('should handle errors in dictation', async () => {
+            (axios.post as any).mockRejectedValue(new Error('Dictation API Error'));
+
+            await expect(dictation(mockFilePath, mockOptions)).rejects.toThrow('Dictation API Error');
         });
     });
 });
