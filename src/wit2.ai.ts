@@ -37,7 +37,7 @@ async function* streamJsonResponses(readable: Readable): AsyncGenerator<PartialJ
     }
 }
 
-export async function dictation(options: DictationOptions): Promise<string> {
+export async function dictation(options: DictationOptions): Promise<PartialJsonObject> {
     const stream = fs.createReadStream(options.filePath);
 
     const response = await fetch('https://api.wit.ai/dictation?v=20240304', {
@@ -57,14 +57,13 @@ export async function dictation(options: DictationOptions): Promise<string> {
         throw new Error('Response body is null');
     }
 
-    let finalTranscription = '';
+    const finalChunk = {};
 
     for await (const chunk of streamJsonResponses(response.body as unknown as Readable)) {
-        console.log('Processed chunk:', chunk);
         if (chunk['type'] === 'FINAL_TRANSCRIPTION' && chunk['text']) {
-            finalTranscription += chunk['text'] + ' ';
+            Object.assign(finalChunk, chunk);
         }
     }
 
-    return finalTranscription.trim();
+    return finalChunk;
 }
