@@ -12,7 +12,7 @@ interface WitAiResponse {
 export const speechToText = async (filePath: string, options: SpeechToTextOptions): Promise<WitAiResponse> => {
     const stream = fs.createReadStream(filePath);
 
-    const response = await fetch('https://api.wit.ai/dictation?v=20240304', {
+    const response = await fetch('https://api.wit.ai/speech', {
         method: 'POST',
         headers: {
             'Content-Type': 'audio/wav',
