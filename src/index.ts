@@ -1,39 +1,48 @@
 import { promises as fs } from 'fs';
+import path from 'path';
 
-import { formatMedia } from './ffmpegUtils.js';
-import { filterMediaFiles, getMediasToConvert, mapInputsToFiles } from './io.js';
+import { setApiKeys } from './apiKeys.js';
+import { formatMedia, splitAudioFile } from './ffmpegUtils.js';
 import logger from './logger.js';
-import { processWaveFile } from './mediaHandler.js';
+import { transcribeAudioChunks } from './transcriber.js';
+import { PreprocessOptions, SplitOptions } from './types.js';
+import { createTempDir } from './utils/io.js';
+import { OutputFormat, TranscriptOutputOptions, writeTranscripts } from './utils/transcriptOutput.js';
 
-const main = async (): Promise<void> => {
-    try {
-        const inputs = ['003_033.mp3'];
-        const outputFolder = 'tmp';
+interface TranscribeFilesOptions {
+    outputDir?: string;
+    preprocessOptions?: PreprocessOptions;
+    splitOptions?: SplitOptions;
+    outputOptions?: TranscriptOutputOptions;
+}
 
-        const allFiles = await mapInputsToFiles(inputs);
-        const medias = filterMediaFiles(allFiles);
-        const { waveFiles, conversionNeeded } = getMediasToConvert(medias);
+interface TafrighOptions {
+    apiKeys: string[];
+}
 
-        for (const wavFile of waveFiles) {
-            const chunksOutputDirectory = `${wavFile}_chunks`;
-            await fs.mkdir(chunksOutputDirectory);
-        }
-
-        await fs.mkdir(outputFolder, { recursive: true });
-
-        const conversionPromises = conversionNeeded.map((file) => formatMedia(file, outputFolder));
-        console.log('conversionPromises', conversionPromises);
-        const convertedWavFiles = await Promise.all(conversionPromises);
-        console.log('convertedWavFiles', convertedWavFiles);
-
-        for (const waveFile of convertedWavFiles) {
-            await processWaveFile(waveFile, { persistOutputFolder: true, chunkDuration: 10 });
-        }
-    } catch (err) {
-        logger.error(err, `Error, terminating`);
-    }
-
-    return new Promise<void>(() => {});
+export const init = (options: TafrighOptions) => {
+    setApiKeys(options.apiKeys);
 };
 
-main();
+export const transcribeFiles = async (filePaths: string[], options: TranscribeFilesOptions = {}) => {
+    const outputDir = options.outputDir || (await createTempDir());
+
+    logger.info(`Using output directory ${outputDir}`);
+
+    for (const file of filePaths) {
+        const filePath = await formatMedia(file, outputDir, options.preprocessOptions);
+        const chunkFiles = await splitAudioFile(filePath, outputDir, options.splitOptions);
+
+        if (chunkFiles.length > 0) {
+            const transcripts = await transcribeAudioChunks(chunkFiles);
+            const outputFile = await writeTranscripts(
+                transcripts,
+                options.outputOptions || { format: OutputFormat.Json, outputDir, filename: path.parse(filePath).name },
+            );
+
+            logger.info(`Transcriptions written to: ${outputFile}`);
+        } else {
+            logger.warn(`No chunks were created during the audio splitting process for ${filePath}`);
+        }
+    }
+};

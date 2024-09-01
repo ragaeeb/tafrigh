@@ -1,10 +1,10 @@
 import { getNextApiKey } from './apiKeys.js';
 import logger from './logger.js';
-import { AudioChunk, Transcription } from './types.js';
+import { AudioChunk, Transcript } from './types.js';
 import { speechToText } from './wit.ai';
 
-export const transcribeAudioChunks = async (chunkFiles: AudioChunk[]): Promise<Transcription[]> => {
-    const transcripts: Transcription[] = [];
+export const transcribeAudioChunks = async (chunkFiles: AudioChunk[]): Promise<Transcript[]> => {
+    const transcripts: Transcript[] = [];
 
     for (const [, { filename, range }] of chunkFiles.entries()) {
         try {
@@ -17,7 +17,7 @@ export const transcribeAudioChunks = async (chunkFiles: AudioChunk[]): Promise<T
                     text: response.text,
                 });
 
-                logger.info(`Final transcription received for chunk: ${filename}`);
+                logger.trace(`Transcript received for chunk: ${filename}`);
             } else {
                 logger.warn(`Skipping non-final transcription for chunk: ${filename}`);
             }

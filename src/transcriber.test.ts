@@ -26,14 +26,14 @@ describe('transcribeAudioChunks', () => {
 
     it('should transcribe all audio chunks successfully', async () => {
         (speechToText as any)
-            .mockResolvedValueOnce({ text: 'Transcription for chunk1' })
-            .mockResolvedValueOnce({ text: 'Transcription for chunk2' });
+            .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
+            .mockResolvedValueOnce({ text: 'Transcript for chunk2' });
 
         const result = await transcribeAudioChunks(mockChunkFiles);
 
         expect(result).toEqual([
-            { range: mockChunkFiles[0].range, text: 'Transcription for chunk1' },
-            { range: mockChunkFiles[1].range, text: 'Transcription for chunk2' },
+            { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
+            { range: mockChunkFiles[1].range, text: 'Transcript for chunk2' },
         ]);
         expect(speechToText).toHaveBeenCalledWith('chunk1.wav', { apiKey: mockApiKey });
         expect(speechToText).toHaveBeenCalledWith('chunk2.wav', { apiKey: mockApiKey });
@@ -41,22 +41,22 @@ describe('transcribeAudioChunks', () => {
 
     it('should skip non-final transcriptions', async () => {
         (speechToText as any)
-            .mockResolvedValueOnce({ text: 'Transcription for chunk1' })
+            .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockResolvedValueOnce({ text: undefined });
 
         const result = await transcribeAudioChunks(mockChunkFiles);
 
-        expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcription for chunk1' }]);
+        expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
     });
 
     it('should log an error and continue if a chunk fails to transcribe', async () => {
         (speechToText as any)
-            .mockResolvedValueOnce({ text: 'Transcription for chunk1' })
+            .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockRejectedValueOnce(new Error('Network error'));
 
         const result = await transcribeAudioChunks(mockChunkFiles);
 
-        expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcription for chunk1' }]);
+        expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
     });
 
     it('should return an empty array if all transcriptions fail', async () => {

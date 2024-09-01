@@ -6,8 +6,8 @@ import logger from './logger.js';
 import { mapSilenceResultsToChunkRanges } from './mediaUtils';
 import {
     AudioChunk,
-    FormattingOptions,
     NoiseReductionOptions,
+    PreprocessOptions,
     SilenceDetectionOptions,
     SplitOptions,
     TimeRange,
@@ -37,7 +37,7 @@ const buildConversionFilters = (noiseReductionOptions: NoiseReductionOptions): s
     return filters;
 };
 
-export const formatMedia = async (input: string, outputDir: string, options?: FormattingOptions): Promise<string> => {
+export const formatMedia = async (input: string, outputDir: string, options?: PreprocessOptions): Promise<string> => {
     const filePath = path.format({
         ...path.parse(input),
         dir: outputDir,

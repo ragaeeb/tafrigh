@@ -7,9 +7,8 @@ export interface NoiseReductionOptions {
     lowpass?: number | null;
 }
 
-export interface FormattingOptions {
+export interface PreprocessOptions {
     noiseReduction?: NoiseReductionOptions | null;
-    outputFormat?: string;
 }
 
 export interface SilenceDetectionOptions {
@@ -33,7 +32,7 @@ export interface AudioChunk {
     range: TimeRange;
 }
 
-export interface Transcription {
+export interface Transcript {
     range: TimeRange;
     text: string;
 }

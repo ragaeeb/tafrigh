@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { getNextApiKey } from './apiKeys.js';
+import { transcribeFiles } from './index.js';
 import { dictation, speechToText } from './wit.ai';
 
 describe('wit.ai', () => {
@@ -16,8 +17,10 @@ describe('wit.ai', () => {
             },
             { timeout: 10000 },
         );
+    });
 
-        it.only(
+    describe('dictation', () => {
+        it(
             'should call the dictation endpoint with a mp3',
             async () => {
                 const result = await dictation('testing/khutbah.mp3', { apiKey: getNextApiKey() });
@@ -25,6 +28,16 @@ describe('wit.ai', () => {
                 expect(result.text).toBeDefined();
                 expect(result.confidence).toBeDefined();
                 expect(result.tokens).toHaveLength(38);
+            },
+            { timeout: 20000 },
+        );
+    });
+
+    describe('transcribeFiles', () => {
+        it.only(
+            'should do a full transcription',
+            async () => {
+                await transcribeFiles(['testing/khutbah.mp3'], { outputDir: 'testing/khutbahx' });
             },
             { timeout: 20000 },
         );
