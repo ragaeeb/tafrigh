@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 
-import { convertToWav } from './ffmpegUtils.js';
+import { formatMedia } from './ffmpegUtils.js';
 import { filterMediaFiles, getMediasToConvert, mapInputsToFiles } from './io.js';
 import logger from './logger.js';
 import { processWaveFile } from './mediaHandler.js';
@@ -21,7 +21,7 @@ const main = async (): Promise<void> => {
 
         await fs.mkdir(outputFolder, { recursive: true });
 
-        const conversionPromises = conversionNeeded.map((file) => convertToWav(file, outputFolder));
+        const conversionPromises = conversionNeeded.map((file) => formatMedia(file, outputFolder));
         console.log('conversionPromises', conversionPromises);
         const convertedWavFiles = await Promise.all(conversionPromises);
         console.log('convertedWavFiles', convertedWavFiles);

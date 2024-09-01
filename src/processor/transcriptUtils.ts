@@ -1,3 +1,7 @@
+import fs from 'fs/promises';
+
+import logger from '../logger.js';
+
 export const processTranscripts = (rawTranscripts, minWordsPerSegment) => {
     const transcripts = [...rawTranscripts];
     // Sort transcripts by original index to maintain order
@@ -23,4 +27,19 @@ export const processTranscripts = (rawTranscripts, minWordsPerSegment) => {
     }
 
     return transcripts.map(({ transcript }) => transcript);
+};
+
+export const writeOutput = async (transcripts, format, fileName, outputDir) => {
+    try {
+        const outputFilePath = `${outputDir}/${fileName}.${format}`;
+
+        await fs.mkdir(outputDir, { recursive: true });
+
+        const outputData = format === 'json' ? JSON.stringify(transcripts, null, 2) : transcripts.join('\n');
+        await fs.writeFile(outputFilePath, outputData, 'utf8');
+
+        logger.info(`Transcriptions written to: ${outputFilePath}`);
+    } catch (error) {
+        logger.error(`Failed to write output: ${error.message}`);
+    }
 };

@@ -2,7 +2,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { convertToWav, detectSilences, getMediaDuration, splitAudioFile } from './ffmpegUtils';
+import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
 import { fileExists } from './io';
 
 describe('ffmpegUtils', () => {
@@ -22,7 +22,7 @@ describe('ffmpegUtils', () => {
         });
     });
 
-    describe('convertToWav', () => {
+    describe('formatMedia', () => {
         afterEach(async () => {
             await fs.rmdir(outputDir, { recursive: true });
         });
@@ -31,7 +31,7 @@ describe('ffmpegUtils', () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
             // Run the actual function with noiseReduction enabled with custom values
-            await convertToWav(testFilePath, outputDir, {
+            await formatMedia(testFilePath, outputDir, {
                 noiseReduction: {
                     highpass: 250,
                     afftdnStart: 0.5,
@@ -56,7 +56,7 @@ describe('ffmpegUtils', () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
             // Run the actual function with noiseReduction enabled with custom values
-            await convertToWav(testFilePath, outputDir, {
+            await formatMedia(testFilePath, outputDir, {
                 noiseReduction: {
                     highpass: null,
                     afftdnStart: null,
@@ -71,19 +71,17 @@ describe('ffmpegUtils', () => {
         });
 
         it('should call ffmpeg with the right format', async () => {
-            const mockToFormat = vi.spyOn(ffmpeg.prototype, 'toFormat');
             const mockAudioChannels = vi.spyOn(ffmpeg.prototype, 'audioChannels');
             const mockSave = vi.spyOn(ffmpeg.prototype, 'save');
 
-            await convertToWav(testFilePath, outputDir);
+            await formatMedia(testFilePath, outputDir);
 
-            expect(mockToFormat).toHaveBeenCalledWith('wav');
             expect(mockAudioChannels).toHaveBeenCalledWith(1);
             expect(mockSave).toHaveBeenCalled();
         });
 
         it('should correctly output the file', async () => {
-            await convertToWav(testFilePath, outputDir);
+            await formatMedia(testFilePath, outputDir);
 
             const result = await fileExists(testFilePath);
             expect(result).toBe(true);
@@ -95,7 +93,7 @@ describe('ffmpegUtils', () => {
         it('should call ffmpeg with the correct arguments when noiseReduction is enabled with default options', async () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
-            await convertToWav(testFilePath, outputDir, { noiseReduction: {} });
+            await formatMedia(testFilePath, outputDir, { noiseReduction: {} });
 
             expect(mockAudioFilters).toHaveBeenCalledWith([
                 'highpass=f=300',
@@ -108,18 +106,18 @@ describe('ffmpegUtils', () => {
         });
 
         it('should call ffmpeg with the correct arguments when noiseReduction is disabled', async () => {
-            await convertToWav(testFilePath, outputDir, { noiseReduction: null });
+            await formatMedia(testFilePath, outputDir, { noiseReduction: null });
             expect(ffmpeg.prototype.audioFilters).not.toHaveBeenCalled();
         });
 
         it('should call ffmpeg with the correct arguments when noiseReduction is not provided (default to false)', async () => {
-            await convertToWav(testFilePath, outputDir);
+            await formatMedia(testFilePath, outputDir);
             expect(ffmpeg.prototype.audioFilters).toHaveBeenCalled();
         });
     });
 
     describe('detectSilences', () => {
-        it('should detect silences for -25dB for 0.1s', async () => {
+        it('should detect silences for -35dB for 0.2s', async () => {
             const result = await detectSilences('testing/khutbah.wav', { silenceThreshold: -35, silenceDuration: 0.2 });
             expect(result).toEqual([
                 { start: 0, end: 0.917551 },
@@ -135,6 +133,11 @@ describe('ffmpegUtils', () => {
                 { start: 28.062132, end: 28.43356 },
                 { start: 33.169569, end: 33.384943 },
             ]);
+        });
+
+        it('should detect silences for -35dB for 0.2s for the mp3', async () => {
+            const result = await detectSilences('testing/khutbah.mp3', { silenceThreshold: -35, silenceDuration: 0.2 });
+            expect(result).toEqual([{ start: 0, end: 0.702177 }]);
         });
     });
 
@@ -161,31 +164,33 @@ describe('ffmpegUtils', () => {
 
             expect(result[0].range.start).toBeCloseTo(0, 6);
             expect(result[0].range.end).toBeCloseTo(7.343764, 6);
-            expect(result[0].filename).toEqual('testing/output/chunk-000.wav');
+            expect(result[0].filename).toEqual('testing/output/khutbah-chunk-000.wav');
             expect(await getMediaDuration(result[0].filename)).toBeCloseTo(7.343764, 4);
 
             expect(result[1].range.start).toBeCloseTo(7.343764, 6);
             expect(result[1].range.end).toBeCloseTo(14.872562, 6);
-            expect(result[1].filename).toEqual('testing/output/chunk-001.wav');
+            expect(result[1].filename).toEqual('testing/output/khutbah-chunk-001.wav');
             expect(await getMediaDuration(result[1].filename)).toBeCloseTo(7.528798, 4);
 
             expect(result[2].range.start).toBeCloseTo(14.872562, 6);
             expect(result[2].range.end).toBeCloseTo(24.311701, 6);
-            expect(result[2].filename).toEqual('testing/output/chunk-002.wav');
+            expect(result[2].filename).toEqual('testing/output/khutbah-chunk-002.wav');
             expect(await getMediaDuration(result[2].filename)).toBeCloseTo(9.439138, 4);
 
             expect(result[3].range.start).toBeCloseTo(24.311701, 6);
             expect(result[3].range.end).toBeCloseTo(33.169569, 6);
-            expect(result[3].filename).toEqual('testing/output/chunk-003.wav');
+            expect(result[3].filename).toEqual('testing/output/khutbah-chunk-003.wav');
             expect(await getMediaDuration(result[3].filename)).toBeCloseTo(8.857868, 4);
 
             expect(result[4].range.start).toBeCloseTo(33.169569, 6);
             expect(result[4].range.end).toBeCloseTo(33.593469, 6);
-            expect(result[4].filename).toEqual('testing/output/chunk-004.wav');
+            expect(result[4].filename).toEqual('testing/output/khutbah-chunk-004.wav');
             expect(await getMediaDuration(result[4].filename)).toBeCloseTo(0.4239, 4);
         });
 
         it('should filter out any chunks that are smaller than the threshold', async () => {
+            testFilePath = 'testing/khutbah.mp3';
+
             const result = await splitAudioFile(testFilePath, outputDir, {
                 chunkDuration: 10,
                 chunkMinThreshold: 1,
@@ -196,6 +201,23 @@ describe('ffmpegUtils', () => {
             });
 
             expect(result).toHaveLength(4);
+        });
+
+        it('should add padding around chunks less than 4s long', async () => {
+            testFilePath = 'testing/khutbah.mp3';
+            const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
+
+            await splitAudioFile(testFilePath, outputDir, {
+                chunkDuration: 10,
+                chunkMinThreshold: 1,
+                silenceDetection: {
+                    silenceThreshold: -35,
+                    silenceDuration: 0.2,
+                },
+            });
+
+            expect(mockAudioFilters).toHaveBeenCalledTimes(1);
+            expect(mockAudioFilters).toHaveBeenCalledWith('apad=pad_dur=0.5');
         });
 
         it('should return an empty array if all the chunks are too short', async () => {

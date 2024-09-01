@@ -6,7 +6,7 @@ import logger from './logger.js';
 import { mapSilenceResultsToChunkRanges } from './mediaUtils';
 import {
     AudioChunk,
-    ConversionOptions,
+    FormattingOptions,
     NoiseReductionOptions,
     SilenceDetectionOptions,
     SplitOptions,
@@ -37,12 +37,16 @@ const buildConversionFilters = (noiseReductionOptions: NoiseReductionOptions): s
     return filters;
 };
 
-export const convertToWav = async (input: string, outputDir: string, options?: ConversionOptions): Promise<string> => {
-    const filePath = `${outputDir}/output.wav`;
+export const formatMedia = async (input: string, outputDir: string, options?: FormattingOptions): Promise<string> => {
+    const filePath = path.format({
+        ...path.parse(input),
+        dir: outputDir,
+    });
+
     await fs.mkdir(outputDir, { recursive: true });
 
     return new Promise<string>((resolve, reject) => {
-        let command = ffmpeg(input).toFormat('wav').audioChannels(1);
+        let command = ffmpeg(input).audioChannels(1);
 
         if (options?.noiseReduction !== null) {
             const filters = buildConversionFilters(options?.noiseReduction || {});
@@ -55,7 +59,7 @@ export const convertToWav = async (input: string, outputDir: string, options?: C
                 reject(err);
             })
             .on('end', () => {
-                logger.info(`Converted file to WAV: ${filePath}`);
+                logger.info(`Formatted file: ${filePath}`);
                 resolve(filePath);
             })
             .save(filePath);
@@ -120,6 +124,8 @@ export const splitAudioFile = async (
 ): Promise<AudioChunk[]> => {
     await fs.mkdir(outputDir, { recursive: true });
 
+    const parsedPath = path.parse(filePath);
+
     const {
         chunkDuration = 10,
         chunkMinThreshold = 0.9,
@@ -134,9 +140,12 @@ export const splitAudioFile = async (
     const chunkRanges: TimeRange[] = mapSilenceResultsToChunkRanges(silences, chunkDuration, totalDuration).filter(
         (r) => r.end - r.start > chunkMinThreshold,
     );
-    const chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
+    let chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
         range,
-        filename: path.join(outputDir, `chunk-${index.toString().padStart(3, '0')}.wav`),
+        filename: path.join(
+            outputDir,
+            `${parsedPath.name}-chunk-${index.toString().padStart(3, '0')}${parsedPath.ext}`,
+        ),
     }));
 
     if (chunks.length > 0) {
@@ -144,13 +153,21 @@ export const splitAudioFile = async (
             chunks.map(
                 (chunk) =>
                     new Promise<void>((resolve, reject) => {
-                        ffmpeg(filePath)
+                        const duration = chunk.range.end - chunk.range.start;
+
+                        let command = ffmpeg(filePath)
                             .setStartTime(chunk.range.start)
-                            .setDuration(chunk.range.end - chunk.range.start)
+                            .setDuration(duration)
                             .output(chunk.filename)
                             .on('end', resolve as () => void)
-                            .on('error', reject)
-                            .run();
+                            .on('error', reject);
+
+                        if (duration < 4) {
+                            // add some silence to prevent an error that happens for very short clips.
+                            command = command.audioFilters('apad=pad_dur=0.5');
+                        }
+
+                        command.run();
                     }),
             ),
         );

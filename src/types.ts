@@ -7,8 +7,9 @@ export interface NoiseReductionOptions {
     lowpass?: number | null;
 }
 
-export interface ConversionOptions {
+export interface FormattingOptions {
     noiseReduction?: NoiseReductionOptions | null;
+    outputFormat?: string;
 }
 
 export interface SilenceDetectionOptions {
