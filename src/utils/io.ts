@@ -8,3 +8,5 @@ export const createTempDir = async () => {
     const tempDirBase = path.join(os.tmpdir(), APP_NAME);
     return fs.mkdtemp(tempDirBase);
 };
+
+export const fileExists = async (path: string) => !!(await fs.stat(path).catch(() => false));

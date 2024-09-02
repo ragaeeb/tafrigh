@@ -1,18 +1,14 @@
-import axios from 'axios';
-import fs from 'fs';
+import https from 'https';
 import JSONStream from 'jsonstream-next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dictation, speechToText } from './wit.ai';
 
-vi.mock('axios');
+vi.mock('https');
 vi.mock('fs');
 vi.mock('jsonstream-next');
 
 describe('wit.ai', () => {
-    const mockOptions = { apiKey: 'test-api-key' };
-    const mockFilePath = 'test-file.wav';
-
     beforeEach(() => {
         vi.resetAllMocks();
     });
@@ -22,116 +18,198 @@ describe('wit.ai', () => {
     });
 
     describe('speechToText', () => {
-        it('should process WAV file correctly', async () => {
+        const filePath = 'test.wav';
+        const options = { apiKey: 'test-api-key' };
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('should process the WAV file and return the final transcription', async () => {
             const mockResponse = {
-                data: {
-                    text: 'Hello, world!',
-                    speech: {
-                        confidence: 0.95,
-                        tokens: [
-                            { confidence: 0.98, end: 1, start: 0, token: 'Hello' },
-                            { confidence: 0.92, end: 2, start: 1, token: 'world' },
-                        ],
-                    },
-                },
+                statusCode: 200,
+                on: vi.fn((event, callback) => {
+                    if (event === 'data') {
+                        callback(
+                            JSON.stringify({
+                                text: 'test transcription',
+                                speech: {
+                                    confidence: 0.9,
+                                    tokens: [{ confidence: 0.9, start: 0, end: 5, token: 'test' }],
+                                },
+                            }),
+                        );
+                    }
+                    if (event === 'end') {
+                        callback();
+                    }
+                }),
             };
 
-            (axios.post as any).mockResolvedValue(mockResponse);
-            (fs.createReadStream as any).mockReturnValue('mock-stream');
-
-            const result = await speechToText(mockFilePath, mockOptions);
-
-            expect(axios.post).toHaveBeenCalledWith('https://api.wit.ai/speech', 'mock-stream', {
-                headers: {
-                    Authorization: 'Bearer test-api-key',
-                    'Content-Type': 'audio/wav',
-                    Accept: 'application/vnd.wit.20200513+json',
-                },
-                responseType: 'json',
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
+                callback(mockResponse as any);
+                return {
+                    on: vi.fn(),
+                    end: vi.fn(),
+                };
             });
+
+            const result = await speechToText(filePath, options);
 
             expect(result).toEqual({
-                text: 'Hello, world!',
-                confidence: 0.95,
-                tokens: [
-                    { confidence: 0.98, end: 1, start: 0, token: 'Hello' },
-                    { confidence: 0.92, end: 2, start: 1, token: 'world' },
-                ],
+                text: 'test transcription',
+                confidence: 0.9,
+                tokens: [{ confidence: 0.9, start: 0, end: 5, token: 'test' }],
             });
         });
 
-        it('should handle MP3 file correctly', async () => {
-            const mp3FilePath = 'test-file.mp3';
-            const mockResponse = { data: { text: 'MP3 audio' } };
-
-            (axios.post as any).mockResolvedValue(mockResponse);
-            (fs.createReadStream as any).mockReturnValue('mock-stream');
-
-            await speechToText(mp3FilePath, mockOptions);
-
-            expect(axios.post).toHaveBeenCalledWith(
-                'https://api.wit.ai/speech',
-                'mock-stream',
-                expect.objectContaining({
-                    headers: expect.objectContaining({
-                        'Content-Type': 'audio/mpeg3',
-                    }),
+        it('should handle HTTP error response', async () => {
+            const mockResponse = {
+                statusCode: 500,
+                on: vi.fn((event, callback) => {
+                    if (event === 'data') {
+                        callback('');
+                    }
+                    if (event === 'end') {
+                        callback();
+                    }
                 }),
-            );
+            };
+
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
+                callback(mockResponse as any);
+                return {
+                    on: vi.fn(),
+                    end: vi.fn(),
+                };
+            });
+
+            await expect(speechToText(filePath, options)).rejects.toThrow('HTTP error! status: 500');
         });
 
-        it('should handle errors', async () => {
-            (axios.post as any).mockRejectedValue(new Error('API Error'));
+        it('should handle https request error', async () => {
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation(() => {
+                const req = {
+                    on: vi.fn((event, callback) => {
+                        if (event === 'error') {
+                            callback(new Error('test error'));
+                        }
+                    }),
+                    end: vi.fn(),
+                };
+                return req;
+            });
 
-            await expect(speechToText(mockFilePath, mockOptions)).rejects.toThrow('API Error');
+            await expect(speechToText(filePath, options)).rejects.toThrow('test error');
         });
     });
 
     describe('dictation', () => {
-        it('should process dictation correctly', async () => {
-            const mockStream = {
-                pipe: vi.fn(),
-                on: vi.fn(),
+        const filePath = 'test.wav';
+        const options = { apiKey: 'test-api-key' };
+
+        it('should return the final transcription', async () => {
+            const mockResponse = {
+                statusCode: 200,
+                pipe: vi.fn().mockReturnThis(),
             };
 
-            const mockParser = {
-                [Symbol.asyncIterator]: vi.fn().mockImplementation(function* () {
-                    yield 'PARTIAL_TRANSCRIPTION';
-                    yield { text: 'Hello2' };
-                    yield true;
-                    yield { text: 'Hello' };
-                    yield 'FINAL_TRANSCRIPTION';
-                    yield true;
-                    yield { text: 'world', confidence: 0.9 };
-                    yield 'FINAL_TRANSCRIPTION';
+            const mockJSONStream = {
+                on: vi.fn((event, callback) => {
+                    if (event === 'data') {
+                        callback({ tokens: [{ token: 'test', start: 0, end: 5, confidence: 0.9 }], confidence: 0.95 });
+                        callback('some text');
+                        callback('FINAL_TRANSCRIPTION');
+                    } else if (event === 'end') {
+                        callback();
+                    }
                 }),
             };
 
-            (axios.post as any).mockResolvedValue({ data: mockStream });
-            (JSONStream.parse as any).mockReturnValue(mockParser);
-            (fs.createReadStream as any).mockReturnValue('mock-stream');
-
-            const result = await dictation(mockFilePath, mockOptions);
-
-            expect(axios.post).toHaveBeenCalledWith('https://api.wit.ai/dictation?v=20240304', 'mock-stream', {
-                headers: {
-                    Authorization: 'Bearer test-api-key',
-                    'Content-Type': 'audio/wav',
-                },
-                responseType: 'stream',
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
+                callback(mockResponse);
+                return {
+                    on: vi.fn(),
+                    end: vi.fn(),
+                };
             });
 
+            vi.spyOn(JSONStream, 'parse').mockReturnValue(mockJSONStream as any);
+
+            const result = await dictation(filePath, options);
+
             expect(result).toEqual({
-                tokens: [],
-                text: ' Hello world',
-                confidence: 0.9,
+                text: ' some text',
+                confidence: 0.95,
+                tokens: [{ token: 'test', start: 0, end: 5, confidence: 0.9 }],
             });
         });
 
-        it('should handle errors in dictation', async () => {
-            (axios.post as any).mockRejectedValue(new Error('Dictation API Error'));
+        it('should handle HTTP error', async () => {
+            const mockResponse = {
+                statusCode: 500,
+                pipe: vi.fn().mockReturnThis(),
+            };
 
-            await expect(dictation(mockFilePath, mockOptions)).rejects.toThrow('Dictation API Error');
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
+                callback(mockResponse);
+                return {
+                    on: vi.fn(),
+                    pipe: vi.fn().mockReturnThis(),
+                };
+            });
+
+            await expect(dictation(filePath, options)).rejects.toEqual(new Error('HTTP error! status: 500'));
+        });
+
+        it('should handle https request error', async () => {
+            vi.spyOn(https, 'request').mockImplementation(() => {
+                const req = {
+                    on: vi.fn((event, callback) => {
+                        if (event === 'error') {
+                            callback(new Error('test error'));
+                        }
+                    }),
+                    end: vi.fn(),
+                };
+                return req as any;
+            });
+
+            await expect(dictation(filePath, options)).rejects.toEqual(new Error('test error'));
+        });
+
+        it('should handle JSONStream error', async () => {
+            const mockResponse = {
+                statusCode: 200,
+                pipe: vi.fn().mockReturnThis(),
+            };
+
+            const mockJSONStream = {
+                parse: vi.fn().mockReturnThis(),
+                on: vi.fn((event, callback) => {
+                    if (event === 'error') {
+                        callback(new Error('test error'));
+                    }
+                }),
+            };
+
+            // @ts-expect-error ignore
+            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
+                callback(mockResponse);
+                return {
+                    on: vi.fn(),
+                    pipe: vi.fn().mockReturnThis(),
+                };
+            });
+
+            vi.spyOn(JSONStream, 'parse').mockReturnValue(mockJSONStream as any);
+
+            await expect(dictation(filePath, options)).rejects.toEqual(new Error('test error'));
         });
     });
 });

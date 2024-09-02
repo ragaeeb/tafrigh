@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
-import { fileExists } from './io';
+import { fileExists } from './utils/io';
 
 describe('ffmpegUtils', () => {
     let testFilePath;
