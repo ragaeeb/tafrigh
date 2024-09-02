@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
-import { fileExists } from './utils/io';
+import { fileExists } from './io';
 
 describe('ffmpegUtils', () => {
     let testFilePath;
@@ -203,6 +203,18 @@ describe('ffmpegUtils', () => {
             expect(result).toHaveLength(4);
         });
 
+        it('should not chunk anything if the total duration of the media <= chunk size', async () => {
+            testFilePath = 'testing/khutbah.mp3';
+            const mockRun = vi.spyOn(ffmpeg.prototype, 'run');
+
+            const result = await splitAudioFile(testFilePath, outputDir, {
+                chunkDuration: 60,
+            });
+
+            expect(result).toEqual([{ range: { start: 0, end: 33.5935 }, filename: testFilePath }]);
+            expect(mockRun).not.toHaveBeenCalled();
+        });
+
         it('should add padding around chunks less than 4s long', async () => {
             testFilePath = 'testing/khutbah.mp3';
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
@@ -242,12 +254,12 @@ describe('ffmpegUtils', () => {
                 chunkMinThreshold: 1,
             });
 
-            expect(result).toHaveLength(2);
+            expect(result).toHaveLength(3);
 
-            expect(mockSetStartTime).toHaveBeenCalledTimes(2);
+            expect(mockSetStartTime).toHaveBeenCalledTimes(3);
             expect(mockSetStartTime).toHaveBeenNthCalledWith(1, 0);
 
-            expect(mockSetDuration).toHaveBeenCalledTimes(2);
+            expect(mockSetDuration).toHaveBeenCalledTimes(3);
         });
     });
 });

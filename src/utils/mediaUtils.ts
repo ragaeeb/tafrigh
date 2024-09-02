@@ -1,10 +1,14 @@
-import { TimeRange } from './types.js';
+import { TimeRange } from '../types.js';
 
 export const mapSilenceResultsToChunkRanges = (
     silenceResults: TimeRange[],
     chunkDuration: number,
     totalDuration: number,
 ): TimeRange[] => {
+    if (chunkDuration >= totalDuration) {
+        return [{ start: 0, end: totalDuration }];
+    }
+
     const chunks: TimeRange[] = [];
     let currentStart = 0;
 

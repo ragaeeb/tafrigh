@@ -3,11 +3,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNextApiKey } from './apiKeys';
 import { transcribeAudioChunks } from './transcriber';
 import { AudioChunk } from './types';
-import { speechToText } from './wit.ai';
+import { dictation } from './wit.ai';
 
 vi.mock('./wit.ai');
 vi.mock('./apiKeys');
-vi.mock('./logger');
+vi.mock('./utils/logger');
+vi.mock('ora', () => {
+    return {
+        default: () => ({
+            start: vi.fn().mockReturnThis(),
+            succeed: vi.fn(),
+            warn: vi.fn(),
+            fail: vi.fn(),
+            stop: vi.fn(),
+        }),
+    };
+});
 
 describe('transcribeAudioChunks', () => {
     let mockApiKey;
@@ -25,7 +36,7 @@ describe('transcribeAudioChunks', () => {
     });
 
     it('should transcribe all audio chunks successfully', async () => {
-        (speechToText as any)
+        (dictation as any)
             .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockResolvedValueOnce({ text: 'Transcript for chunk2' });
 
@@ -35,12 +46,12 @@ describe('transcribeAudioChunks', () => {
             { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
             { range: mockChunkFiles[1].range, text: 'Transcript for chunk2' },
         ]);
-        expect(speechToText).toHaveBeenCalledWith('chunk1.wav', { apiKey: mockApiKey });
-        expect(speechToText).toHaveBeenCalledWith('chunk2.wav', { apiKey: mockApiKey });
+        expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey: mockApiKey });
+        expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey: mockApiKey });
     });
 
     it('should skip non-final transcriptions', async () => {
-        (speechToText as any)
+        (dictation as any)
             .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockResolvedValueOnce({ text: undefined });
 
@@ -50,7 +61,7 @@ describe('transcribeAudioChunks', () => {
     });
 
     it('should log an error and continue if a chunk fails to transcribe', async () => {
-        (speechToText as any)
+        (dictation as any)
             .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockRejectedValueOnce(new Error('Network error'));
 
@@ -60,7 +71,7 @@ describe('transcribeAudioChunks', () => {
     });
 
     it('should return an empty array if all transcriptions fail', async () => {
-        (speechToText as any).mockRejectedValue(new Error('Network error'));
+        (dictation as any).mockRejectedValue(new Error('Network error'));
 
         const result = await transcribeAudioChunks(mockChunkFiles);
 

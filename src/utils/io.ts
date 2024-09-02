@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { APP_NAME } from '../constants';
+import { APP_NAME } from './constants.js';
 
 export const createTempDir = async () => {
     const tempDirBase = path.join(os.tmpdir(), APP_NAME);

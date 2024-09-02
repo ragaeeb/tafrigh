@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mapSilenceResultsToChunkRanges } from './mediaUtils';
-import { TimeRange } from './types';
+import { TimeRange } from '../types';
 
 describe('mediaUtils', () => {
     describe('mapSilenceResultsToChunkRanges', () => {
@@ -95,6 +95,24 @@ describe('mediaUtils', () => {
                 { start: 8, end: 18 },
                 { start: 18, end: 25 },
             ]);
+        });
+
+        it('should produce a single chunk if the chunk duration is greater than the total duration', () => {
+            const silenceResults: TimeRange[] = [
+                { start: 0, end: 0.81746 },
+                { start: 7.61737, end: 8.354966 },
+                { start: 14.979592, end: 15.490794 },
+                { start: 18.758458, end: 19.106621 },
+                { start: 24.334376, end: 24.567075 },
+                { start: 28.103855, end: 28.420635 },
+            ];
+
+            const chunkDuration = 60;
+            const totalDuration = 33.645714;
+
+            const result = mapSilenceResultsToChunkRanges(silenceResults, chunkDuration, totalDuration);
+
+            expect(result).toEqual([{ start: 0, end: 33.645714 }]);
         });
     });
 });

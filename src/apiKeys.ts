@@ -1,6 +1,6 @@
 import process from 'process';
 
-import logger from './logger.js';
+import logger from './utils/logger.js';
 
 const WIT_AI_API_KEYS: string[] = process.env.WIT_AI_API_KEYS ? process.env.WIT_AI_API_KEYS.split(' ') : [];
 

@@ -2,8 +2,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import logger from './logger.js';
-import { mapSilenceResultsToChunkRanges } from './mediaUtils';
+import { mapSilenceResultsToChunkRanges } from './mediaUtils.js';
 import {
     AudioChunk,
     NoiseReductionOptions,
@@ -11,7 +10,8 @@ import {
     SilenceDetectionOptions,
     SplitOptions,
     TimeRange,
-} from './types.js';
+} from '../types.js';
+import logger from './logger.js';
 
 const buildConversionFilters = (noiseReductionOptions: NoiseReductionOptions): string[] => {
     const {
@@ -50,6 +50,7 @@ export const formatMedia = async (input: string, outputDir: string, options?: Pr
 
         if (options?.noiseReduction !== null) {
             const filters = buildConversionFilters(options?.noiseReduction || {});
+            logger.info(filters, `Using filters`);
             command = command.audioFilters(filters);
         }
 
@@ -126,20 +127,32 @@ export const splitAudioFile = async (
 
     const parsedPath = path.parse(filePath);
 
+    logger.debug(`Split file ${filePath}`);
+
     const {
-        chunkDuration = 10,
+        chunkDuration = 60,
         chunkMinThreshold = 0.9,
-        silenceDetection: { silenceThreshold = -35, silenceDuration = 0.2 } = {},
+        silenceDetection: { silenceThreshold = -25, silenceDuration = 0.1 } = {},
     } = options || {};
 
-    const [totalDuration, silences] = await Promise.all([
-        getMediaDuration(filePath),
-        detectSilences(filePath, { silenceThreshold, silenceDuration }),
-    ]);
+    logger.info(
+        `Using chunkDuration=${chunkDuration}, chunkMinThreshold=${chunkMinThreshold}, silenceThreshold=${silenceThreshold}, silenceDuration=${silenceDuration}`,
+    );
+
+    const totalDuration = await getMediaDuration(filePath);
+
+    if (chunkDuration >= totalDuration) {
+        return [{ range: { start: 0, end: totalDuration }, filename: filePath }];
+    }
+
+    const silences = await detectSilences(filePath, { silenceThreshold, silenceDuration });
 
     const chunkRanges: TimeRange[] = mapSilenceResultsToChunkRanges(silences, chunkDuration, totalDuration).filter(
         (r) => r.end - r.start > chunkMinThreshold,
     );
+
+    logger.debug(chunkRanges, 'chunkRanges');
+
     let chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
         range,
         filename: path.join(

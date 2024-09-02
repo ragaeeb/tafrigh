@@ -36,3 +36,24 @@ export interface Transcript {
     range: TimeRange;
     text: string;
 }
+
+export enum OutputFormat {
+    Json = 'json',
+}
+
+export interface TranscriptOutputOptions {
+    format: OutputFormat;
+    outputDir: string;
+    filename: string;
+}
+
+export interface TranscribeFilesOptions {
+    outputDir?: string;
+    preprocessOptions?: PreprocessOptions;
+    splitOptions?: SplitOptions;
+    outputOptions?: TranscriptOutputOptions;
+}
+
+export interface TafrighOptions {
+    apiKeys: string[];
+}

@@ -1,17 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { Transcript } from '../types.js';
-
-export enum OutputFormat {
-    Json = 'json',
-}
-
-export interface TranscriptOutputOptions {
-    format: OutputFormat;
-    outputDir: string;
-    filename: string;
-}
+import { OutputFormat, Transcript, TranscriptOutputOptions } from '../types.js';
 
 const mapTranscriptsToJSONString = (transcripts: Transcript[]): string => {
     const flattened = transcripts.map(({ text, range }) => ({ ...range, text }));
@@ -30,6 +20,10 @@ export const writeTranscripts = async (
 
     const outputFilePath = path.format({ dir: options.outputDir, name: options.filename, ext: options.format });
     const handler = OutputFormatToHandler[options.format];
+
+    if (!handler) {
+        throw new Error(`${options.format} not supported`);
+    }
 
     await fs.writeFile(outputFilePath, handler(transcripts), 'utf8');
 
