@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getNextApiKey } from './apiKeys.js';
-import { transcribeFiles } from './index.js';
-import { dictation, speechToText } from './wit.ai';
+import { getNextApiKey } from '../src/apiKeys.js';
+import { transcribeFiles } from '../src/index.js';
+import { speechToText } from '../src/wit.ai.js';
 
-describe.skip('e2e', () => {
+describe('e2e', () => {
     describe('speechToText', () => {
         it(
             'should call the Wit.ai API with the correct parameters and return the text',
@@ -16,20 +16,6 @@ describe.skip('e2e', () => {
                 expect((result.tokens || []).length > 6).toBe(true);
             },
             { timeout: 10000 },
-        );
-    });
-
-    describe('dictation', () => {
-        it(
-            'should call the dictation endpoint with a mp3',
-            async () => {
-                const result = await dictation('testing/khutbah.mp3', { apiKey: getNextApiKey() });
-
-                expect(result.text).toBeDefined();
-                expect(result.confidence).toBeDefined();
-                expect((result.tokens || []).length > 30).toBe(true);
-            },
-            { timeout: 20000 },
         );
     });
 
