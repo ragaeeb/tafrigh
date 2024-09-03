@@ -1,18 +1,21 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
-import { fileExists } from './io';
+import { createTempDir, fileExists } from './io';
 
 describe('ffmpegUtils', () => {
     let testFilePath;
     let outputDir;
 
+    beforeAll(async () => {
+        outputDir = await createTempDir();
+    });
+
     beforeEach(() => {
         vi.clearAllMocks(); // Reset all mocks before each test
         testFilePath = 'testing/khutbah.mp3';
-        outputDir = 'testing/output';
     });
 
     describe('getMediaDuration', () => {
@@ -164,27 +167,27 @@ describe('ffmpegUtils', () => {
 
             expect(result[0].range.start).toBeCloseTo(0, 6);
             expect(result[0].range.end).toBeCloseTo(7.343764, 6);
-            expect(result[0].filename).toEqual('testing/output/khutbah-chunk-000.wav');
+            expect(result[0].filename).toEqual(`${outputDir}/khutbah-chunk-000.wav`);
             expect(await getMediaDuration(result[0].filename)).toBeCloseTo(7.343764, 4);
 
             expect(result[1].range.start).toBeCloseTo(7.343764, 6);
             expect(result[1].range.end).toBeCloseTo(14.872562, 6);
-            expect(result[1].filename).toEqual('testing/output/khutbah-chunk-001.wav');
+            expect(result[1].filename).toEqual(`${outputDir}/khutbah-chunk-001.wav`);
             expect(await getMediaDuration(result[1].filename)).toBeCloseTo(7.528798, 4);
 
             expect(result[2].range.start).toBeCloseTo(14.872562, 6);
             expect(result[2].range.end).toBeCloseTo(24.311701, 6);
-            expect(result[2].filename).toEqual('testing/output/khutbah-chunk-002.wav');
+            expect(result[2].filename).toEqual(`${outputDir}/khutbah-chunk-002.wav`);
             expect(await getMediaDuration(result[2].filename)).toBeCloseTo(9.439138, 4);
 
             expect(result[3].range.start).toBeCloseTo(24.311701, 6);
             expect(result[3].range.end).toBeCloseTo(33.169569, 6);
-            expect(result[3].filename).toEqual('testing/output/khutbah-chunk-003.wav');
+            expect(result[3].filename).toEqual(`${outputDir}/khutbah-chunk-003.wav`);
             expect(await getMediaDuration(result[3].filename)).toBeCloseTo(8.857868, 4);
 
             expect(result[4].range.start).toBeCloseTo(33.169569, 6);
             expect(result[4].range.end).toBeCloseTo(33.593469, 6);
-            expect(result[4].filename).toEqual('testing/output/khutbah-chunk-004.wav');
+            expect(result[4].filename).toEqual(`${outputDir}/khutbah-chunk-004.wav`);
             expect(await getMediaDuration(result[4].filename)).toBeCloseTo(0.4239, 4);
         });
 

@@ -16,4 +16,5 @@ yarn-error.log*
 .env
 .env.*
 
-testing/output
+.parcel-cache
+dist

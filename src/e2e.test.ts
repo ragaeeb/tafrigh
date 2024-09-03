@@ -4,7 +4,7 @@ import { getNextApiKey } from './apiKeys.js';
 import { transcribeFiles } from './index.js';
 import { dictation, speechToText } from './wit.ai';
 
-describe.skip('wit.ai', () => {
+describe.skip('e2e', () => {
     describe('speechToText', () => {
         it(
             'should call the Wit.ai API with the correct parameters and return the text',
@@ -37,10 +37,11 @@ describe.skip('wit.ai', () => {
         it(
             'should do a full transcription',
             async () => {
-                await transcribeFiles(['testing/khutbah.mp3'], {
-                    outputDir: 'testing/khutbahx',
+                const outputs = await transcribeFiles(['testing/khutbah.mp3'], {
                     splitOptions: { chunkDuration: 60 },
                 });
+
+                expect(outputs).toHaveLength(1);
             },
             { timeout: 20000 },
         );

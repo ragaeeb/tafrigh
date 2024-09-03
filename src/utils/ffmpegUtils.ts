@@ -1,8 +1,8 @@
+import deepmerge from 'deepmerge';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import { mapSilenceResultsToChunkRanges } from './mediaUtils.js';
 import {
     AudioChunk,
     NoiseReductionOptions,
@@ -11,18 +11,23 @@ import {
     SplitOptions,
     TimeRange,
 } from '../types.js';
+import {
+    DEFAULT_SHORT_CLIP_PADDING,
+    MIN_CHUNK_DURATION,
+    NOISE_REDUCTION_OPTIONS_DEFAULTS,
+    SPLIT_OPTIONS_DEFAULTS,
+} from './constants.js';
 import logger from './logger.js';
+import { mapSilenceResultsToChunkRanges } from './mediaUtils.js';
 
-const buildConversionFilters = (noiseReductionOptions: NoiseReductionOptions): string[] => {
-    const {
-        highpass = 300,
-        afftdnStart = 0.0,
-        afftdnStop = 1.5,
-        afftdn_nf = -20,
-        dialogueEnhance = true,
-        lowpass = 3000,
-    } = noiseReductionOptions;
-
+const buildConversionFilters = ({
+    highpass,
+    afftdnStart,
+    afftdnStop,
+    afftdn_nf,
+    dialogueEnhance,
+    lowpass,
+}: NoiseReductionOptions): string[] => {
     const filters = [
         highpass !== null && `highpass=f=${highpass}`,
         afftdnStart !== null &&
@@ -49,7 +54,7 @@ export const formatMedia = async (input: string, outputDir: string, options?: Pr
         let command = ffmpeg(input).audioChannels(1);
 
         if (options?.noiseReduction !== null) {
-            const filters = buildConversionFilters(options?.noiseReduction || {});
+            const filters = buildConversionFilters({ ...NOISE_REDUCTION_OPTIONS_DEFAULTS, ...options?.noiseReduction });
             logger.info(filters, `Using filters`);
             command = command.audioFilters(filters);
         }
@@ -130,10 +135,10 @@ export const splitAudioFile = async (
     logger.debug(`Split file ${filePath}`);
 
     const {
-        chunkDuration = 60,
-        chunkMinThreshold = 0.9,
-        silenceDetection: { silenceThreshold = -25, silenceDuration = 0.1 } = {},
-    } = options || {};
+        chunkDuration,
+        chunkMinThreshold,
+        silenceDetection: { silenceThreshold, silenceDuration },
+    } = deepmerge(SPLIT_OPTIONS_DEFAULTS, options || {});
 
     logger.info(
         `Using chunkDuration=${chunkDuration}, chunkMinThreshold=${chunkMinThreshold}, silenceThreshold=${silenceThreshold}, silenceDuration=${silenceDuration}`,
@@ -175,9 +180,9 @@ export const splitAudioFile = async (
                             .on('end', resolve as () => void)
                             .on('error', reject);
 
-                        if (duration < 4) {
+                        if (duration < MIN_CHUNK_DURATION) {
                             // add some silence to prevent an error that happens for very short clips.
-                            command = command.audioFilters('apad=pad_dur=0.5');
+                            command = command.audioFilters(`apad=pad_dur=${DEFAULT_SHORT_CLIP_PADDING}`);
                         }
 
                         command.run();
