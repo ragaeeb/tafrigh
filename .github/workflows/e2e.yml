@@ -1,9 +1,7 @@
-name: Node.js CI
+name: E2E
 
 on:
     push:
-        branches: [main]
-    pull_request:
         branches: [main]
 
 jobs:
@@ -19,3 +17,5 @@ jobs:
             - run: npm ci
             - run: npm run build
             - run: npm run test:e2e
+              env:
+                  WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}

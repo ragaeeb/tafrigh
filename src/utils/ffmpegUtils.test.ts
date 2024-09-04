@@ -32,6 +32,7 @@ describe('ffmpegUtils', () => {
 
         it('should call ffmpeg with the correct arguments when noiseReduction is enabled with custom options', async () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
+            outputDir = 'testing/khutbahx';
 
             // Run the actual function with noiseReduction enabled with custom values
             await formatMedia(testFilePath, outputDir, {

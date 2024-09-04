@@ -48,6 +48,7 @@ export interface TranscriptOutputOptions {
 }
 
 export interface TranscribeFilesOptions {
+    preventCleanup?: boolean;
     outputDir?: string;
     preprocessOptions?: PreprocessOptions;
     splitOptions?: SplitOptions;

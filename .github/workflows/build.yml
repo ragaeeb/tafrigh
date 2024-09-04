@@ -19,3 +19,5 @@ jobs:
             - run: npm ci
             - run: npm run build
             - run: npm test
+              env:
+                  WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}

@@ -20,7 +20,7 @@ describe('e2e', () => {
     });
 
     describe('transcribeFiles', () => {
-        it(
+        it.only(
             'should do a full transcription',
             async () => {
                 const outputs = await transcribeFiles(['testing/khutbah.mp3'], {

@@ -65,16 +65,12 @@ describe('transcribeAudioChunks', () => {
             .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
             .mockRejectedValueOnce(new Error('Network error'));
 
-        const result = await transcribeAudioChunks(mockChunkFiles);
-
-        expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
+        await expect(transcribeAudioChunks(mockChunkFiles)).rejects.toThrow('Network error');
     });
 
     it('should return an empty array if all transcriptions fail', async () => {
         (dictation as any).mockRejectedValue(new Error('Network error'));
 
-        const result = await transcribeAudioChunks(mockChunkFiles);
-
-        expect(result).toEqual([]);
+        await expect(transcribeAudioChunks(mockChunkFiles)).rejects.toThrow('Network error');
     });
 });

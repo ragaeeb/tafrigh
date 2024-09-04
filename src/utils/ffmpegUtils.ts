@@ -43,10 +43,15 @@ const buildConversionFilters = ({
 };
 
 export const formatMedia = async (input: string, outputDir: string, options?: PreprocessOptions): Promise<string> => {
+    logger.debug(`formatMedia: ${input}, outputDir: ${outputDir}`);
+    const parsedInput = path.parse(input);
+    logger.trace(`parsedInput: ${JSON.stringify(parsedInput)}`);
     const filePath = path.format({
-        ...path.parse(input),
+        name: `${parsedInput.name}_preprocessed`,
         dir: outputDir,
+        ext: parsedInput.ext,
     });
+    logger.debug(`filePath: ${filePath}`);
 
     await fs.mkdir(outputDir, { recursive: true });
 
@@ -58,6 +63,8 @@ export const formatMedia = async (input: string, outputDir: string, options?: Pr
             logger.info(filters, `Using filters`);
             command = command.audioFilters(filters);
         }
+
+        logger.info(`saveTo: ${filePath}`);
 
         command
             .on('error', (err) => {

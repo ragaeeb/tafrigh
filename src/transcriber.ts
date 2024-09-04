@@ -30,6 +30,8 @@ export const transcribeAudioChunks = async (chunkFiles: AudioChunk[]): Promise<T
         } catch (error: any) {
             logger.error(`Failed to transcribe chunk ${filename}: ${error.message}`);
             spinner.fail(`Failed to transcribe chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
+
+            throw error;
         }
     }
 

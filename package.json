@@ -9,7 +9,9 @@
   "scripts": {
     "build": "parcel build",
     "test": "node --env-file .env.test node_modules/.bin/vitest run",
-    "test:e2e": "vitest --config vitest.e2e.config.ts --run"
+    "test:e2e": "node --env-file .env.test node_modules/.bin/vitest --config vitest.e2e.config.ts --run",
+    "test:ci": "vitest --config vitest.e2e.config.ts --run",
+    "test:e2e:ci": "vitest --config vitest.e2e.config.ts --run"
   },
   "files": [
     "dist/main.js",
@@ -22,7 +24,7 @@
     "fluent-ffmpeg": "^2.1.3",
     "jsonstream-next": "^3.0.0",
     "ora": "^8.1.0",
-    "pino": "^9.3.2",
+    "pino": "^9.4.0",
     "pino-pretty": "^11.2.2"
   },
   "engines": {
@@ -45,11 +47,11 @@
     "@types/eslint__js": "^8.42.3",
     "@types/fluent-ffmpeg": "^2.1.26",
     "@types/jsonstream-next": "^3.0.3",
-    "@types/node": "^22.5.2",
+    "@types/node": "^22.5.3",
     "@types/pino": "^7.0.5",
     "@types/pino-pretty": "^5.0.0",
     "eslint": "^8.57.0",
-    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-vitest": "^0.5.4",
