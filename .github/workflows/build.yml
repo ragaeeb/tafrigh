@@ -18,6 +18,6 @@ jobs:
                   node-version: 21.x
             - run: npm ci
             - run: npm run build
-            - run: npm test
+            - run: npm run test:ci
               env:
                   WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}

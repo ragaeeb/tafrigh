@@ -1,10 +1,10 @@
 # Tafrigh
 
-Tafrigh is an audio processing library designed to facilitate audio file transcription using external APIs like Wit.ai. It provides utilities to handle audio file preprocessing, including splitting audio into chunks and noise reduction, making it easier to transcribe large audio files or streams efficiently.
+Tafrigh is a NodeJS audio processing library designed to facilitate audio file transcription using external APIs like Wit.ai. It provides utilities to handle audio file preprocessing, including splitting audio into chunks and noise reduction, making it easier to transcribe large audio files or streams efficiently.
 
 ## Features
 
--   **Audio Splitting**: Split audio files into manageable chunks based on silence detection, which can then be sent to transcription services.
+-   **Audio Splitting**: Split audio files into manageable chunks based on silence detection, which can then be sent to transcription services which do not support the large file.
 -   **Noise Reduction**: Apply noise reduction filters to improve transcription accuracy.
 -   **Transcription**: Integrate with Wit.ai to transcribe audio chunks and compile the results.
 -   **Flexible Configuration**: Customize the behavior through various options, including silence sensitivity and chunk duration.
