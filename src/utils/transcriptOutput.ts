@@ -17,17 +17,15 @@ export const writeTranscripts = async (
     transcripts: Transcript[],
     options: TranscriptOutputOptions,
 ): Promise<string> => {
-    await fs.mkdir(options.outputDir, { recursive: true });
-
-    const outputFilePath = path.format({ dir: options.outputDir, name: options.filename, ext: options.format });
-    logger.info(`Writing ${transcripts.length} transcripts to ${outputFilePath}`);
-    const handler = OutputFormatToHandler[options.format];
+    const format = path.parse(options.outputFile).ext.slice(1);
+    logger.info(`Writing ${transcripts.length} transcripts to ${options}`);
+    const handler = OutputFormatToHandler[format as OutputFormat];
 
     if (!handler) {
-        throw new Error(`${options.format} not supported`);
+        throw new Error(`${format} extension not supported`);
     }
 
-    await fs.writeFile(outputFilePath, handler(transcripts), 'utf8');
+    await fs.writeFile(options.outputFile, handler(transcripts), 'utf8');
 
-    return outputFilePath;
+    return options.outputFile;
 };

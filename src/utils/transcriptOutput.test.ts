@@ -1,9 +1,10 @@
 import { afterEach } from 'node:test';
 
 import { promises as fs } from 'fs';
+import path from 'path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { OutputFormat, Transcript } from '../types';
+import { Transcript } from '../types';
 import { createTempDir } from './io';
 import { writeTranscripts } from './transcriptOutput';
 
@@ -27,9 +28,7 @@ describe('transcriptOutput', () => {
             ];
 
             const jsonFile = await writeTranscripts(transcripts, {
-                format: OutputFormat.Json,
-                outputDir,
-                filename: 'output',
+                outputFile: path.join(outputDir, 'output.json'),
             });
 
             const rawData = await fs.readFile(jsonFile, 'utf8');
@@ -45,11 +44,9 @@ describe('transcriptOutput', () => {
         it('should throw an error for an unsupported format', async () => {
             await expect(
                 writeTranscripts([], {
-                    format: 'unsupported_format' as OutputFormat,
-                    outputDir,
-                    filename: 'output',
+                    outputFile: path.join(outputDir, 'output.xyz'),
                 }),
-            ).rejects.toThrow('unsupported_format not supported');
+            ).rejects.toThrow('xyz extension not supported');
         });
     });
 });

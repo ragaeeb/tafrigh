@@ -42,14 +42,11 @@ export enum OutputFormat {
 }
 
 export interface TranscriptOutputOptions {
-    format: OutputFormat;
-    outputDir: string;
-    filename: string;
+    outputFile: string;
 }
 
 export interface TranscribeFilesOptions {
     preventCleanup?: boolean;
-    outputDir?: string;
     preprocessOptions?: PreprocessOptions;
     splitOptions?: SplitOptions;
     outputOptions?: TranscriptOutputOptions;

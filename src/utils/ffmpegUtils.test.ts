@@ -1,6 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
 import { createTempDir, fileExists } from './io';
@@ -26,13 +26,8 @@ describe('ffmpegUtils', () => {
     });
 
     describe('formatMedia', () => {
-        afterEach(async () => {
-            await fs.rmdir(outputDir, { recursive: true });
-        });
-
         it('should call ffmpeg with the correct arguments when noiseReduction is enabled with custom options', async () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
-            outputDir = 'testing/khutbahx';
 
             // Run the actual function with noiseReduction enabled with custom values
             await formatMedia(testFilePath, outputDir, {
@@ -150,10 +145,6 @@ describe('ffmpegUtils', () => {
             testFilePath = 'testing/khutbah.wav';
         });
 
-        afterEach(async () => {
-            await fs.rmdir(outputDir, { recursive: true });
-        });
-
         it('should split the audio into 4 chunks', async () => {
             const result = await splitAudioFile(testFilePath, outputDir, {
                 chunkDuration: 10,
@@ -264,6 +255,21 @@ describe('ffmpegUtils', () => {
             expect(mockSetStartTime).toHaveBeenNthCalledWith(1, 0);
 
             expect(mockSetDuration).toHaveBeenCalledTimes(3);
+        });
+
+        it('should create chunks using the original directory', async () => {
+            const result = await splitAudioFile(testFilePath, '', {
+                chunkDuration: 31,
+                chunkMinThreshold: 2,
+            });
+
+            expect(result).toHaveLength(2);
+
+            expect(result[0].filename.startsWith('testing/')).toBe(true);
+            expect(result[1].filename.startsWith('testing/')).toBe(true);
+
+            fs.rm(result[0].filename, { force: true });
+            fs.rm(result[1].filename, { force: true });
         });
     });
 });

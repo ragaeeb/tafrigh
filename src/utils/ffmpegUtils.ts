@@ -1,7 +1,8 @@
+import { randomUUID } from 'crypto';
 import deepmerge from 'deepmerge';
 import ffmpeg from 'fluent-ffmpeg';
-import { promises as fs } from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 import {
     AudioChunk,
@@ -42,18 +43,13 @@ const buildConversionFilters = ({
     return filters;
 };
 
-export const formatMedia = async (input: string, outputDir: string, options?: PreprocessOptions): Promise<string> => {
-    logger.debug(`formatMedia: ${input}, outputDir: ${outputDir}`);
-    const parsedInput = path.parse(input);
-    logger.trace(`parsedInput: ${JSON.stringify(parsedInput)}`);
-    const filePath = path.format({
-        name: `${parsedInput.name}_preprocessed`,
-        dir: outputDir,
-        ext: parsedInput.ext,
-    });
-    logger.debug(`filePath: ${filePath}`);
-
-    await fs.mkdir(outputDir, { recursive: true });
+export const formatMedia = async (
+    input: string | Readable,
+    outputDir: string,
+    options?: PreprocessOptions,
+): Promise<string> => {
+    const outputPath = path.join(outputDir, `${randomUUID()}.mp3`);
+    logger.debug(`formatMedia: ${input}, outputDir: ${outputDir}, outputPath: ${outputPath}`);
 
     return new Promise<string>((resolve, reject) => {
         let command = ffmpeg(input).audioChannels(1);
@@ -64,7 +60,7 @@ export const formatMedia = async (input: string, outputDir: string, options?: Pr
             command = command.audioFilters(filters);
         }
 
-        logger.info(`saveTo: ${filePath}`);
+        logger.info(`saveTo: ${outputPath}`);
 
         command
             .on('error', (err) => {
@@ -72,10 +68,10 @@ export const formatMedia = async (input: string, outputDir: string, options?: Pr
                 reject(err);
             })
             .on('end', () => {
-                logger.info(`Formatted file: ${filePath}`);
-                resolve(filePath);
+                logger.info(`Formatted file: ${outputPath}`);
+                resolve(outputPath);
             })
-            .save(filePath);
+            .save(outputPath);
     });
 };
 
@@ -132,11 +128,9 @@ export const detectSilences = (
 
 export const splitAudioFile = async (
     filePath: string,
-    outputDir: string,
+    outputDir?: string,
     options?: SplitOptions,
 ): Promise<AudioChunk[]> => {
-    await fs.mkdir(outputDir, { recursive: true });
-
     const parsedPath = path.parse(filePath);
 
     logger.debug(`Split file ${filePath}`);
@@ -165,36 +159,36 @@ export const splitAudioFile = async (
 
     logger.debug(chunkRanges, 'chunkRanges');
 
-    let chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
+    const chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
         range,
-        filename: path.join(
-            outputDir,
-            `${parsedPath.name}-chunk-${index.toString().padStart(3, '0')}${parsedPath.ext}`,
-        ),
+        filename: path.format({
+            dir: outputDir || parsedPath.dir,
+            ext: parsedPath.ext,
+            name: `${parsedPath.name}-chunk-${index.toString().padStart(3, '0')}`,
+        }),
     }));
 
     if (chunks.length > 0) {
         await Promise.all(
-            chunks.map(
-                (chunk) =>
-                    new Promise<void>((resolve, reject) => {
-                        const duration = chunk.range.end - chunk.range.start;
+            chunks.map((chunk) => {
+                return new Promise<void>((resolve, reject) => {
+                    const duration = chunk.range.end - chunk.range.start;
 
-                        let command = ffmpeg(filePath)
-                            .setStartTime(chunk.range.start)
-                            .setDuration(duration)
-                            .output(chunk.filename)
-                            .on('end', resolve as () => void)
-                            .on('error', reject);
+                    let command = ffmpeg(filePath)
+                        .setStartTime(chunk.range.start)
+                        .setDuration(duration)
+                        .output(chunk.filename)
+                        .on('end', resolve as () => void)
+                        .on('error', reject);
 
-                        if (duration < MIN_CHUNK_DURATION) {
-                            // add some silence to prevent an error that happens for very short clips.
-                            command = command.audioFilters(`apad=pad_dur=${DEFAULT_SHORT_CLIP_PADDING}`);
-                        }
+                    if (duration < MIN_CHUNK_DURATION) {
+                        // add some silence to prevent an error that happens for very short clips.
+                        command = command.audioFilters(`apad=pad_dur=${DEFAULT_SHORT_CLIP_PADDING}`);
+                    }
 
-                        command.run();
-                    }),
-            ),
+                    command.run();
+                });
+            }),
         );
     }
 

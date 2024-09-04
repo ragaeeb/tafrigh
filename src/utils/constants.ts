@@ -1,8 +1,10 @@
-export const APP_NAME = 'tafrigh';
+import { OutputFormat } from '../types.js';
 
 export const MAX_CHUNK_DURATION = 60 * 5; // wit.ai supports up to 5 mins
 
 export const MIN_CHUNK_DURATION = 4; // minimum 4s duration
+
+export const DEFAULT_OUTPUT_EXTENSION = OutputFormat.Json;
 
 export const DEFAULT_SHORT_CLIP_PADDING = 0.5;
 
