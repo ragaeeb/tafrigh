@@ -10,7 +10,6 @@ const transcribeAudioChunksInSingleThread = async (chunkFiles: AudioChunk[]): Pr
     const transcripts: Transcript[] = [];
     const spinner = ora('Starting transcription...').start();
 
-    console.log('transcribeAudioChunksInSingleThread');
     logger.debug(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
 
     for (const [index, { filename, range }] of chunkFiles.entries()) {
@@ -49,7 +48,6 @@ const transcribeAudioChunksWithConcurrency = async (
     concurrency: number,
 ): Promise<Transcript[]> => {
     logger.debug(`transcribeAudioChunksWithConcurrency ${concurrency}`);
-    console.log('transcribeAudioChunksWithConcurrency', concurrency);
 
     const transcripts: Transcript[] = [];
     const spinner = ora('Starting transcription...').start();
@@ -59,7 +57,6 @@ const transcribeAudioChunksWithConcurrency = async (
     const processChunk = async (index: number, chunk: AudioChunk) => {
         const { filename, range } = chunk;
         spinner.start(`Transcribing chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-        console.log(`Transcribing chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
 
         try {
             const response = await dictation(filename, { apiKey: getNextApiKey() });

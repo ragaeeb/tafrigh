@@ -45,14 +45,14 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
                     .mockResolvedValueOnce({ text: 'Transcript for chunk2' });
 
-                const result = await transcribeAudioChunks(mockChunkFiles);
+                const result = await transcribeAudioChunks(mockChunkFiles, 1);
 
                 expect(result).toEqual([
                     { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
                     { range: mockChunkFiles[1].range, text: 'Transcript for chunk2' },
                 ]);
-                expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey: apiKey });
-                expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey: apiKey });
+                expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey });
+                expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey });
             });
 
             it('should skip non-final transcriptions', async () => {
@@ -60,7 +60,7 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
                     .mockResolvedValueOnce({ text: undefined });
 
-                const result = await transcribeAudioChunks(mockChunkFiles);
+                const result = await transcribeAudioChunks(mockChunkFiles, 1);
 
                 expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
             });
@@ -70,13 +70,13 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
                     .mockRejectedValueOnce(new Error('Network error'));
 
-                await expect(transcribeAudioChunks(mockChunkFiles)).rejects.toThrow('Network error');
+                await expect(transcribeAudioChunks(mockChunkFiles, 1)).rejects.toThrow('Network error');
             });
 
             it('should return an empty array if all transcriptions fail', async () => {
                 (dictation as any).mockRejectedValue(new Error('Network error'));
 
-                await expect(transcribeAudioChunks(mockChunkFiles)).rejects.toThrow('Network error');
+                await expect(transcribeAudioChunks(mockChunkFiles, 1)).rejects.toThrow('Network error');
             });
         });
 
@@ -111,7 +111,6 @@ describe('transcriber', () => {
             });
 
             it('should limit concurrency when more API keys than chunks', async () => {
-                // Arrange
                 const chunkFiles = [
                     { filename: 'chunk1.mp3', range: { start: 0, end: 10 } },
                     { filename: 'chunk2.mp3', range: { start: 10, end: 20 } },
@@ -119,7 +118,6 @@ describe('transcriber', () => {
 
                 const fakeTranscript = (text: string) => ({ text });
 
-                // Mocking API functions
                 (dictation as any).mockImplementation((filename) =>
                     Promise.resolve(fakeTranscript(`Transcribed text for ${filename}`)),
                 );

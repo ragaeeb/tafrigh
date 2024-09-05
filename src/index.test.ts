@@ -45,7 +45,7 @@ describe('transcribe', () => {
             expect(splitAudioFile).toHaveBeenCalledWith('processed.mp3', '', undefined);
             expect(splitAudioFile).toHaveBeenCalledOnce();
 
-            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles);
+            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, undefined);
             expect(transcribeAudioChunks).toHaveBeenCalledOnce();
 
             const data = JSON.parse(await fs.readFile(result, 'utf8'));
@@ -57,7 +57,10 @@ describe('transcribe', () => {
             const result = await transcribe(testFile, {
                 preventCleanup: true,
                 outputOptions: { outputFile },
+                concurrency: 2,
             });
+
+            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, 2);
 
             const isOutputFileWritten = await fileExists(result);
             expect(isOutputFileWritten).toBe(true);
