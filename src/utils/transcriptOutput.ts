@@ -5,7 +5,7 @@ import { OutputFormat, Transcript, TranscriptOutputOptions } from '../types.js';
 import logger from './logger.js';
 
 const mapTranscriptsToJSONString = (transcripts: Transcript[]): string => {
-    const flattened = transcripts.map(({ text, range }) => ({ ...range, text }));
+    const flattened = transcripts.map(({ range, text }) => ({ ...range, text }));
     return JSON.stringify(flattened, null, 2);
 };
 

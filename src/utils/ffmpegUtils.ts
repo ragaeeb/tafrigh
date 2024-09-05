@@ -22,11 +22,11 @@ import logger from './logger.js';
 import { mapSilenceResultsToChunkRanges } from './mediaUtils.js';
 
 const buildConversionFilters = ({
-    highpass,
+    afftdn_nf,
     afftdnStart,
     afftdnStop,
-    afftdn_nf,
     dialogueEnhance,
+    highpass,
     lowpass,
 }: NoiseReductionOptions): string[] => {
     const filters = [
@@ -138,7 +138,7 @@ export const splitAudioFile = async (
     const {
         chunkDuration,
         chunkMinThreshold,
-        silenceDetection: { silenceThreshold, silenceDuration },
+        silenceDetection: { silenceDuration, silenceThreshold },
     } = deepmerge(SPLIT_OPTIONS_DEFAULTS, options || {});
 
     logger.info(
