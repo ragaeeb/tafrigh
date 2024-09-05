@@ -46,5 +46,10 @@ describe('validation', () => {
 
             expect(() => validateTranscribeFileOptions(options)).not.toThrow();
         });
+
+        it('should pass validation if concurrency is not provided', () => {
+            expect(() => validateTranscribeFileOptions()).not.toThrow();
+            expect(() => validateTranscribeFileOptions({})).not.toThrow();
+        });
     });
 });

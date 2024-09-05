@@ -28,7 +28,7 @@ export const transcribe = async (content: string | Readable, options?: Transcrib
 
     if (chunkFiles.length > 0) {
         logger.trace(chunkFiles, `Generated chunks`);
-        const transcripts = await transcribeAudioChunks(chunkFiles);
+        const transcripts = await transcribeAudioChunks(chunkFiles, options?.concurrency);
         outputFile = await writeTranscripts(
             transcripts,
             options?.outputOptions || {

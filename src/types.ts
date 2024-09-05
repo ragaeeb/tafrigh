@@ -46,10 +46,11 @@ export interface TranscriptOutputOptions {
 }
 
 export interface TranscribeFilesOptions {
+    concurrency?: number;
+    outputOptions?: TranscriptOutputOptions;
     preventCleanup?: boolean;
     preprocessOptions?: PreprocessOptions;
     splitOptions?: SplitOptions;
-    outputOptions?: TranscriptOutputOptions;
 }
 
 export interface TafrighOptions {

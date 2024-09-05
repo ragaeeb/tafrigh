@@ -1,13 +1,15 @@
 # Tafrigh
 
-Tafrigh is a NodeJS audio processing library designed to facilitate audio file transcription using external APIs like Wit.ai. It provides utilities to handle audio file preprocessing, including splitting audio into chunks and noise reduction, making it easier to transcribe large audio files or streams efficiently.
+Tafrigh is a NodeJS library designed to streamline the transcription of audio and video files using external APIs such as Wit.ai. It includes built-in features for audio processing like noise reduction, silence detection, and automatic chunking, allowing the processing of large files in a more efficient manner. Tafrigh also enables smart concurrency management for parallel transcriptions and offers advanced configuration options to improve transcription accuracy.
 
 ## Features
 
--   **Audio Splitting**: Split audio files into manageable chunks based on silence detection, which can then be sent to transcription services which do not support the large file.
--   **Noise Reduction**: Apply noise reduction filters to improve transcription accuracy.
--   **Transcription**: Integrate with Wit.ai to transcribe audio chunks and compile the results.
--   **Flexible Configuration**: Customize the behavior through various options, including silence sensitivity and chunk duration.
+-   **Audio Splitting**: Automatically splits audio into manageable chunks based on silence detection, making large files easier to process.
+-   **Noise Reduction**: Built-in noise reduction filters, such as high-pass filters and dialogue enhancement, improve transcription accuracy.
+-   **API Integration**: Uses Wit.ai for transcription of audio chunks.
+-   **Concurrency Management**: Utilizes a dynamic approach to determine the optimal number of concurrent transcription processes based on the number of available API keys and the client's specified limits.
+-   **Error Handling & Logging**: Provides robust error handling and custom logging using the pino logging framework, with configurable verbosity.
+-   **Output**: Transcriptions are currently saved in .json format, making it easy to work with structured data.
 
 ## Installation
 
@@ -56,7 +58,7 @@ Detailed configuration options are provided to adjust the preprocessing and tran
 
 ## Contributing
 
-Contributions to Tafrigh are welcome. Please ensure that your contributions adhere to the project's coding standards and include appropriate tests.
+Contributions are welcome! Please ensure your code follows the established linting and formatting rules, and include appropriate tests for any new features or bug fixes.
 
 ## License
 

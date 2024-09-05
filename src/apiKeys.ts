@@ -6,8 +6,10 @@ const WIT_AI_API_KEYS: string[] = process.env.WIT_AI_API_KEYS ? process.env.WIT_
 
 let currentKeyIndex = 0;
 
-const validateApiKeys = () => {
-    if (WIT_AI_API_KEYS.length === 0) {
+export const getApiKeysCount = (): number => WIT_AI_API_KEYS.length;
+
+const validateApiKeys = (): void => {
+    if (getApiKeysCount() === 0) {
         logger.error('At least one Wit.ai API key is required. Please set them in your environment variables.');
         throw new Error('Empty wit.ai API keys');
     }
