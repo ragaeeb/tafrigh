@@ -16,14 +16,14 @@ export const init = (options: TafrighOptions) => {
     setApiKeys(options.apiKeys);
 };
 
-export const transcribe = async (content: string | Readable, options: TranscribeFilesOptions): Promise<string> => {
+export const transcribe = async (content: string | Readable, options?: TranscribeFilesOptions): Promise<string> => {
     validateTranscribeFileOptions(options);
 
     const outputDir = await createTempDir();
     logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)} to ${outputDir}`);
 
-    const filePath = await formatMedia(content, outputDir, options.preprocessOptions);
-    const chunkFiles = await splitAudioFile(filePath, '', options.splitOptions);
+    const filePath = await formatMedia(content, outputDir, options?.preprocessOptions);
+    const chunkFiles = await splitAudioFile(filePath, '', options?.splitOptions);
     let outputFile = '';
 
     if (chunkFiles.length > 0) {
@@ -31,7 +31,7 @@ export const transcribe = async (content: string | Readable, options: Transcribe
         const transcripts = await transcribeAudioChunks(chunkFiles);
         outputFile = await writeTranscripts(
             transcripts,
-            options.outputOptions || {
+            options?.outputOptions || {
                 outputFile: path.join(outputDir, `${path.parse(filePath).name}.${DEFAULT_OUTPUT_EXTENSION}`),
             },
         );
@@ -41,7 +41,7 @@ export const transcribe = async (content: string | Readable, options: Transcribe
         logger.warn(`No chunks were created during the audio splitting process for ${filePath}`);
     }
 
-    if (!options.preventCleanup && !options.outputOptions) {
+    if (!options?.preventCleanup && options?.outputOptions) {
         await fs.rmdir(outputDir, { recursive: true });
     }
 

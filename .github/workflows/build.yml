@@ -17,6 +17,7 @@ jobs:
               with:
                   node-version: 21.x
             - run: npm ci
+            - run: sudo apt-get install ffmpeg
             - run: npm run build
             - run: npm run test:ci
               env:

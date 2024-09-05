@@ -1,7 +1,9 @@
+import { promises as fs } from 'fs';
 import { describe, expect, it } from 'vitest';
 
 import { getNextApiKey } from '../src/apiKeys.js';
-import { transcribeFiles } from '../src/index.js';
+import { transcribe } from '../src/index.js';
+import { MAX_CHUNK_DURATION } from '../src/utils/constants.js';
 import { speechToText } from '../src/wit.ai.js';
 
 describe('e2e', () => {
@@ -19,15 +21,17 @@ describe('e2e', () => {
         );
     });
 
-    describe('transcribeFiles', () => {
+    describe('transcribe', () => {
         it(
             'should do a full transcription',
             async () => {
-                const outputs = await transcribeFiles(['testing/khutbah.mp3'], {
-                    splitOptions: { chunkDuration: 60 },
+                const outputFile = await transcribe('testing/khutbah.mp3', {
+                    splitOptions: { chunkDuration: MAX_CHUNK_DURATION },
                 });
 
-                expect(outputs).toHaveLength(1);
+                const data = JSON.parse(await fs.readFile(outputFile, 'utf8'));
+
+                expect(data).toHaveLength(1);
             },
             { timeout: 20000 },
         );

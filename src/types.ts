@@ -17,7 +17,7 @@ export interface SilenceDetectionOptions {
 }
 
 export interface SplitOptions {
-    chunkDuration?: number;
+    chunkDuration?: number; // defaults to 60
     chunkMinThreshold?: number;
     silenceDetection?: SilenceDetectionOptions;
 }

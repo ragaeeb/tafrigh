@@ -1,8 +1,8 @@
 import { TranscribeFilesOptions } from '../types.js';
 import { MAX_CHUNK_DURATION, MIN_CHUNK_DURATION } from './constants.js';
 
-export const validateTranscribeFileOptions = (options: TranscribeFilesOptions) => {
-    if (options.splitOptions?.chunkDuration) {
+export const validateTranscribeFileOptions = (options?: TranscribeFilesOptions) => {
+    if (options?.splitOptions?.chunkDuration) {
         const { chunkDuration } = options.splitOptions;
 
         if (chunkDuration < MIN_CHUNK_DURATION) {

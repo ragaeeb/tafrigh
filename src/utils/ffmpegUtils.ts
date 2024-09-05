@@ -56,11 +56,11 @@ export const formatMedia = async (
 
         if (options?.noiseReduction !== null) {
             const filters = buildConversionFilters({ ...NOISE_REDUCTION_OPTIONS_DEFAULTS, ...options?.noiseReduction });
-            logger.info(filters, `Using filters`);
+            logger.debug(filters, `Using filters`);
             command = command.audioFilters(filters);
         }
 
-        logger.info(`saveTo: ${outputPath}`);
+        logger.debug(`saveTo: ${outputPath}`);
 
         command
             .on('error', (err) => {
