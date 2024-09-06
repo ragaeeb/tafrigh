@@ -1,9 +1,15 @@
 import { getOctokit } from '@actions/github';
-import { getInput, setFailed, info } from '@actions/core';
+import { setFailed, info } from '@actions/core';
 
 const run = async () => {
     try {
-        const token = getInput('github_token');
+        // Use process.env to get the token from environment variables
+        const token = process.env.GITHUB_TOKEN;
+
+        if (!token) {
+            throw new Error('GITHUB_TOKEN is not defined');
+        }
+
         const octokit = getOctokit(token);
         const context = github.context;
 
