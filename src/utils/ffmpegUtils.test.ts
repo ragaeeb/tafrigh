@@ -39,6 +39,7 @@ describe('ffmpegUtils', () => {
                     afftdn_nf: -25,
                     dialogueEnhance: true,
                     lowpass: 3500,
+                    normalize: false,
                 },
             });
 
@@ -64,6 +65,7 @@ describe('ffmpegUtils', () => {
                     afftdn_nf: null,
                     dialogueEnhance: true,
                     lowpass: null,
+                    normalize: false,
                 },
             });
 
@@ -102,6 +104,8 @@ describe('ffmpegUtils', () => {
                 'afftdn=nf=-20',
                 'dialoguenhance',
                 'lowpass=f=3000',
+                'loudnorm',
+                'compand'
             ]);
         });
 
