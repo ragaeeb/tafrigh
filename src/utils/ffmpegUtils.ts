@@ -78,10 +78,7 @@ export const formatMedia = async (
 export const getMediaDuration = async (filePath: string): Promise<number> => {
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err) {
-                console.log('ABCDERR', err);
-                return reject(err);
-            }
+            if (err) return reject(err);
 
             resolve(metadata.format.duration || 0); // Return duration in seconds
         });
