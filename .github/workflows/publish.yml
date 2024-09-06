@@ -26,7 +26,12 @@ jobs:
               with:
                   node-version: 21.x
             - run: npm ci
-            - run: sudo apt-get install ffmpeg
+            - uses: federicocarboni/setup-ffmpeg@v3
+              id: setup-ffmpeg
+              with:
+                  ffmpeg-version: release
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - run: ffmpeg -version
             - run: npm run test:ci
             - run: npm run build
             - run: npx semantic-release
