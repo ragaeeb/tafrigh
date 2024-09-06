@@ -28,6 +28,7 @@ const buildConversionFilters = ({
     dialogueEnhance,
     highpass,
     lowpass,
+    normalize,
 }: NoiseReductionOptions): string[] => {
     const filters = [
         highpass !== null && `highpass=f=${highpass}`,
@@ -36,6 +37,7 @@ const buildConversionFilters = ({
         afftdn_nf !== null && `afftdn=nf=${afftdn_nf}`,
         dialogueEnhance && 'dialoguenhance',
         lowpass && `lowpass=f=${lowpass}`,
+        normalize && ['loudnorm', 'compand'],
     ]
         .flat()
         .filter(Boolean) as string[]; // Flatten and filter out undefined values
