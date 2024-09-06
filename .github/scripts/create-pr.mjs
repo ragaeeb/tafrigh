@@ -1,4 +1,4 @@
-import { getOctokit } from '@actions/github';
+import { getOctokit, context } from '@actions/github'; // Import 'context' from '@actions/github'
 import { setFailed, info } from '@actions/core';
 
 const run = async () => {
@@ -10,23 +10,25 @@ const run = async () => {
             throw new Error('GITHUB_TOKEN is not defined');
         }
 
-        const octokit = getOctokit(token);
-        const context = github.context;
+        const octokit = getOctokit(token); // Initialize Octokit with the token
 
-        const prTitle = context.payload.commits[0].message;
-        const headBranch = context.ref.replace('refs/heads/', '');
-        const baseBranch = 'main';
+        const prTitle = context.payload.commits[0].message; // Get the PR title from the commit message
+        const headBranch = context.ref.replace('refs/heads/', ''); // Get the branch name
+        const baseBranch = 'main'; // The base branch for the PR
 
-        const repoOwner = context.repo.owner;
+        const repoOwner = context.repo.owner; // Repository owner
 
+        // Fetch the list of collaborators
         const { data: collaborators } = await octokit.rest.repos.listCollaborators({
             owner: repoOwner,
             repo: context.repo.repo,
         });
 
+        // If there are collaborators, pick the first one; otherwise, fallback to the repo owner
         const assignee = collaborators.length > 0 ? collaborators[0].login : repoOwner;
 
-        const milestones = await octokit.rest.issues.listMilestonesForRepo({
+        // Fetch milestone number for "next"
+        const { data: milestones } = await octokit.rest.issues.listMilestonesForRepo({
             owner: context.repo.owner,
             repo: context.repo.repo,
         });
