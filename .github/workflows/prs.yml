@@ -19,7 +19,10 @@ jobs:
               with:
                   node-version: '21'
 
-            - run: npm install
+            - name: Install dependencies
+              run: |
+                  cd .github/scripts
+                  npm install
 
             - name: Run PR script
               run: node .github/scripts/create-pr.mjs
