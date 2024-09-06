@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys';
 import { transcribeAudioChunks } from './transcriber';
@@ -11,17 +11,6 @@ vi.mock('./apiKeys.js', () => ({
     getApiKeysCount: vi.fn(),
 }));
 vi.mock('./utils/logger');
-vi.mock('ora', () => {
-    return {
-        default: () => ({
-            start: vi.fn().mockReturnThis(),
-            succeed: vi.fn(),
-            warn: vi.fn(),
-            fail: vi.fn(),
-            stop: vi.fn(),
-        }),
-    };
-});
 
 describe('transcriber', () => {
     describe('transcribeAudioChunks', () => {
@@ -45,7 +34,13 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
                     .mockResolvedValueOnce({ text: 'Transcript for chunk2' });
 
-                const result = await transcribeAudioChunks(mockChunkFiles, 1);
+                const callbacks = {
+                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
+                    onTranscriptionProgress: vitest.fn(),
+                    onTranscriptionFinished: vitest.fn().mockResolvedValue(null),
+                };
+
+                const result = await transcribeAudioChunks(mockChunkFiles, 1, callbacks);
 
                 expect(result).toEqual([
                     { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
@@ -53,6 +48,16 @@ describe('transcriber', () => {
                 ]);
                 expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey });
+
+                expect(callbacks.onTranscriptionStarted).toHaveBeenCalledOnce();
+                expect(callbacks.onTranscriptionStarted).toHaveBeenCalledWith(mockChunkFiles.length);
+
+                expect(callbacks.onTranscriptionProgress).toHaveBeenCalledTimes(2);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(1, 0);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(2, 1);
+
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledOnce();
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result);
             });
 
             it('should skip non-final transcriptions', async () => {
@@ -82,7 +87,7 @@ describe('transcriber', () => {
 
         describe('concurrent threads', () => {
             it('should transcribe multiple chunks in parallel with limited concurrency', async () => {
-                const chunkFiles = [
+                mockChunkFiles = [
                     { filename: 'chunk1.mp3', range: { start: 0, end: 10 } },
                     { filename: 'chunk2.mp3', range: { start: 10, end: 20 } },
                     { filename: 'chunk3.mp3', range: { start: 20, end: 30 } },
@@ -97,7 +102,13 @@ describe('transcriber', () => {
                 (getNextApiKey as any).mockImplementation(() => apiKey);
                 (getApiKeysCount as any).mockReturnValue(2); // Simulate 2 available API keys
 
-                const result = await transcribeAudioChunks(chunkFiles, 2);
+                const callbacks = {
+                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
+                    onTranscriptionProgress: vitest.fn(),
+                    onTranscriptionFinished: vitest.fn().mockResolvedValue(null),
+                };
+
+                const result = await transcribeAudioChunks(mockChunkFiles, 2, callbacks);
 
                 expect(result).toHaveLength(3);
                 expect(result[0].text).toBe('Transcribed text for chunk1.mp3');
@@ -108,6 +119,17 @@ describe('transcriber', () => {
                 expect(dictation).toHaveBeenCalledWith('chunk1.mp3', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk2.mp3', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk3.mp3', { apiKey });
+
+                expect(callbacks.onTranscriptionStarted).toHaveBeenCalledOnce();
+                expect(callbacks.onTranscriptionStarted).toHaveBeenCalledWith(mockChunkFiles.length);
+
+                expect(callbacks.onTranscriptionProgress).toHaveBeenCalledTimes(3);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(1, 0);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(2, 1);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(3, 2);
+
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledOnce();
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result);
             });
 
             it('should limit concurrency when more API keys than chunks', async () => {

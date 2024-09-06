@@ -1,44 +1,55 @@
-import ora from 'ora';
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
-import { AudioChunk, Transcript } from './types.js';
+import { AudioChunk, Callbacks, TimeRange, Transcript, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
 import { dictation } from './wit.ai.js';
 
-const transcribeAudioChunksInSingleThread = async (chunkFiles: AudioChunk[]): Promise<Transcript[]> => {
+const requestNextTranscript = async (
+    chunk: AudioChunk,
+    index: number,
+    callbacks?: Callbacks,
+): Promise<Transcript | null> => {
+    const response: WitAiResponse = await dictation(chunk.filename, { apiKey: getNextApiKey() });
+
+    if (callbacks?.onTranscriptionProgress) {
+        callbacks.onTranscriptionProgress(index);
+    }
+
+    if (response.text?.trim()) {
+        return {
+            confidence: response.confidence,
+            range: chunk.range,
+            text: response.text.trim(),
+            tokens: response.tokens,
+        };
+    }
+
+    return null;
+};
+
+const transcribeAudioChunksInSingleThread = async (
+    chunkFiles: AudioChunk[],
+    callbacks?: Callbacks,
+): Promise<Transcript[]> => {
     const transcripts: Transcript[] = [];
-    const spinner = ora('Starting transcription...').start();
 
     logger.debug(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
 
-    for (const [index, { filename, range }] of chunkFiles.entries()) {
-        spinner.start(`Transcribing chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
+    for (const [index, chunk] of chunkFiles.entries()) {
+        const transcript = await requestNextTranscript(chunk, index, callbacks);
 
-        try {
-            const response = await dictation(filename, { apiKey: getNextApiKey() });
-
-            if (response.text) {
-                transcripts.push({
-                    range,
-                    text: response.text,
-                });
-
-                logger.trace(`Transcript received for chunk: ${filename}`);
-                spinner.succeed(`Transcribed chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-            } else {
-                logger.warn(`Skipping non-final transcription for chunk: ${filename}`);
-                spinner.warn(`No transcription for chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-            }
-        } catch (error: any) {
-            logger.error(`Failed to transcribe chunk ${filename}: ${error.message}`);
-            spinner.fail(`Failed to transcribe chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-
-            throw error;
+        if (transcript) {
+            transcripts.push(transcript);
+            logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+        } else {
+            logger.warn(`Skipping empty transcript`);
         }
     }
 
-    spinner.stop();
+    if (callbacks?.onTranscriptionFinished) {
+        await callbacks.onTranscriptionFinished(transcripts);
+    }
 
     return transcripts;
 };
@@ -46,61 +57,55 @@ const transcribeAudioChunksInSingleThread = async (chunkFiles: AudioChunk[]): Pr
 const transcribeAudioChunksWithConcurrency = async (
     chunkFiles: AudioChunk[],
     concurrency: number,
+    callbacks?: Callbacks,
 ): Promise<Transcript[]> => {
     logger.debug(`transcribeAudioChunksWithConcurrency ${concurrency}`);
 
     const transcripts: Transcript[] = [];
-    const spinner = ora('Starting transcription...').start();
-
     const queue = new PQueue({ concurrency });
 
     const processChunk = async (index: number, chunk: AudioChunk) => {
-        const { filename, range } = chunk;
-        spinner.start(`Transcribing chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
+        const transcript = await requestNextTranscript(chunk, index, callbacks);
 
-        try {
-            const response = await dictation(filename, { apiKey: getNextApiKey() });
-
-            if (response.text) {
-                transcripts.push({
-                    range,
-                    text: response.text,
-                });
-
-                logger.trace(`Transcript received for chunk: ${filename}`);
-                spinner.succeed(`Transcribed chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-            } else {
-                logger.warn(`Skipping non-final transcription for chunk: ${filename}`);
-                spinner.warn(`No transcription for chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-            }
-        } catch (error: any) {
-            logger.error(`Failed to transcribe chunk ${filename}: ${error.message}`);
-            spinner.fail(`Failed to transcribe chunk ${index + 1}/${chunkFiles.length}: ${filename}`);
-
-            throw error;
+        if (transcript) {
+            transcripts.push(transcript);
+            logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+        } else {
+            logger.warn(`Skipping empty transcript`);
         }
     };
 
-    // Enqueue the chunk processing tasks
     chunkFiles.forEach((chunk, index) => {
         queue.add(() => processChunk(index, chunk));
     });
 
     await queue.onIdle(); // Wait until all tasks in the queue are processed
 
-    spinner.stop();
-
     // Sort transcripts by their original order based on range to maintain chunk order
-    return transcripts.sort((a: Transcript, b: Transcript) => a.range.start - b.range.start);
+    transcripts.sort((a: Transcript, b: Transcript) => a.range.start - b.range.start);
+
+    if (callbacks?.onTranscriptionFinished) {
+        await callbacks.onTranscriptionFinished(transcripts);
+    }
+
+    return transcripts;
 };
 
-export const transcribeAudioChunks = async (chunkFiles: AudioChunk[], concurrency?: number): Promise<Transcript[]> => {
+export const transcribeAudioChunks = async (
+    chunkFiles: AudioChunk[],
+    concurrency?: number,
+    callbacks?: Callbacks,
+): Promise<Transcript[]> => {
     const apiKeyCount = getApiKeysCount();
     const maxConcurrency = concurrency && concurrency <= apiKeyCount ? concurrency : apiKeyCount;
 
-    if (chunkFiles.length === 1 || concurrency === 1) {
-        return transcribeAudioChunksInSingleThread(chunkFiles);
+    if (callbacks?.onTranscriptionStarted) {
+        await callbacks?.onTranscriptionStarted(chunkFiles.length);
     }
 
-    return transcribeAudioChunksWithConcurrency(chunkFiles, maxConcurrency);
+    if (chunkFiles.length === 1 || concurrency === 1) {
+        return transcribeAudioChunksInSingleThread(chunkFiles, callbacks);
+    }
+
+    return transcribeAudioChunksWithConcurrency(chunkFiles, maxConcurrency, callbacks);
 };

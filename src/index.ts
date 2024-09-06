@@ -22,13 +22,13 @@ export const transcribe = async (content: string | Readable, options?: Transcrib
     const outputDir = await createTempDir();
     logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)} to ${outputDir}`);
 
-    const filePath = await formatMedia(content, outputDir, options?.preprocessOptions);
-    const chunkFiles = await splitAudioFile(filePath, '', options?.splitOptions);
+    const filePath = await formatMedia(content, outputDir, options?.preprocessOptions, options?.callbacks);
+    const chunkFiles = await splitAudioFile(filePath, '', options?.splitOptions, options?.callbacks);
     let outputFile = '';
 
     if (chunkFiles.length > 0) {
         logger.trace(chunkFiles, `Generated chunks`);
-        const transcripts = await transcribeAudioChunks(chunkFiles, options?.concurrency);
+        const transcripts = await transcribeAudioChunks(chunkFiles, options?.concurrency, options?.callbacks);
         outputFile = await writeTranscripts(
             transcripts,
             options?.outputOptions || {
@@ -42,7 +42,7 @@ export const transcribe = async (content: string | Readable, options?: Transcrib
     }
 
     if (!options?.preventCleanup && options?.outputOptions) {
-        await fs.rmdir(outputDir, { recursive: true });
+        await fs.rm(outputDir, { recursive: true });
     }
 
     return outputFile;

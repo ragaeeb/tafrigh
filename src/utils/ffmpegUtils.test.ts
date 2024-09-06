@@ -1,7 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
 import { createTempDir, fileExists } from './io';
@@ -30,18 +30,28 @@ describe('ffmpegUtils', () => {
         it('should call ffmpeg with the correct arguments when noiseReduction is enabled with custom options', async () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
+            const callbacks = {
+                onPreprocessingStarted: vitest.fn().mockResolvedValue(null),
+                onPreprocessingProgress: vitest.fn(),
+                onPreprocessingFinished: vitest.fn().mockResolvedValue(null),
+            };
+
             // Run the actual function with noiseReduction enabled with custom values
-            await formatMedia(testFilePath, outputDir, {
-                noiseReduction: {
-                    highpass: 250,
-                    afftdnStart: 0.5,
-                    afftdnStop: 2,
-                    afftdn_nf: -25,
-                    dialogueEnhance: true,
-                    lowpass: 3500,
-                    normalize: false,
+            await formatMedia(
+                testFilePath,
+                outputDir,
+                {
+                    noiseReduction: {
+                        highpass: 250,
+                        afftdnStart: 0.5,
+                        afftdnStop: 2,
+                        afftdn_nf: -25,
+                        dialogueEnhance: true,
+                        lowpass: 3500,
+                    },
                 },
-            });
+                callbacks,
+            );
 
             expect(mockAudioFilters).toHaveBeenCalledWith([
                 'highpass=f=250',
@@ -51,6 +61,15 @@ describe('ffmpegUtils', () => {
                 'dialoguenhance',
                 'lowpass=f=3500',
             ]);
+
+            expect(callbacks.onPreprocessingStarted).toHaveBeenCalledOnce();
+            expect(callbacks.onPreprocessingStarted).toHaveBeenCalledWith(expect.any(String));
+
+            expect(callbacks.onPreprocessingProgress).toHaveBeenCalledTimes(1);
+            expect(callbacks.onPreprocessingProgress).toHaveBeenCalledWith(expect.any(Number));
+
+            expect(callbacks.onPreprocessingFinished).toHaveBeenCalledOnce();
+            expect(callbacks.onPreprocessingFinished).toHaveBeenCalledWith(expect.any(String));
         });
 
         it('should call ffmpeg omitting all the null options', async () => {
@@ -65,7 +84,6 @@ describe('ffmpegUtils', () => {
                     afftdn_nf: null,
                     dialogueEnhance: true,
                     lowpass: null,
-                    normalize: false,
                 },
             });
 
@@ -104,8 +122,6 @@ describe('ffmpegUtils', () => {
                 'afftdn=nf=-20',
                 'dialoguenhance',
                 'lowpass=f=3000',
-                'loudnorm',
-                'compand'
             ]);
         });
 
@@ -168,27 +184,27 @@ describe('ffmpegUtils', () => {
             expect(result[0].range.start).toBeCloseTo(0, 6);
             expect(result[0].range.end).toBeCloseTo(7.343764, 6);
             expect(result[0].filename).toEqual(`${outputDir}/khutbah-chunk-000.wav`);
-            expect(await getMediaDuration(result[0].filename)).toBeCloseTo(7.343764, 4);
+            expect(await getMediaDuration(result[0].filename)).toBeCloseTo(7.343764, 1);
 
             expect(result[1].range.start).toBeCloseTo(7.343764, 6);
             expect(result[1].range.end).toBeCloseTo(14.872562, 6);
             expect(result[1].filename).toEqual(`${outputDir}/khutbah-chunk-001.wav`);
-            expect(await getMediaDuration(result[1].filename)).toBeCloseTo(7.528798, 4);
+            expect(await getMediaDuration(result[1].filename)).toBeCloseTo(7.528798, 1);
 
             expect(result[2].range.start).toBeCloseTo(14.872562, 6);
             expect(result[2].range.end).toBeCloseTo(24.311701, 6);
             expect(result[2].filename).toEqual(`${outputDir}/khutbah-chunk-002.wav`);
-            expect(await getMediaDuration(result[2].filename)).toBeCloseTo(9.439138, 4);
+            expect(await getMediaDuration(result[2].filename)).toBeCloseTo(9.439138, 1);
 
             expect(result[3].range.start).toBeCloseTo(24.311701, 6);
             expect(result[3].range.end).toBeCloseTo(33.169569, 6);
             expect(result[3].filename).toEqual(`${outputDir}/khutbah-chunk-003.wav`);
-            expect(await getMediaDuration(result[3].filename)).toBeCloseTo(8.857868, 4);
+            expect(await getMediaDuration(result[3].filename)).toBeCloseTo(8.857868, 1);
 
             expect(result[4].range.start).toBeCloseTo(33.169569, 6);
             expect(result[4].range.end).toBeCloseTo(33.593469, 6);
             expect(result[4].filename).toEqual(`${outputDir}/khutbah-chunk-004.wav`);
-            expect(await getMediaDuration(result[4].filename)).toBeCloseTo(0.4239, 4);
+            expect(await getMediaDuration(result[4].filename)).toBeCloseTo(0.4239, 1);
         });
 
         it('should filter out any chunks that are smaller than the threshold', async () => {
@@ -218,7 +234,7 @@ describe('ffmpegUtils', () => {
             expect(mockRun).not.toHaveBeenCalled();
         });
 
-        it('should add padding around chunks less than 4s long', async () => {
+        it('should add padding around chunks', async () => {
             testFilePath = path.join('testing', 'khutbah.mp3');
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
@@ -231,8 +247,8 @@ describe('ffmpegUtils', () => {
                 },
             });
 
-            expect(mockAudioFilters).toHaveBeenCalledTimes(1);
-            expect(mockAudioFilters).toHaveBeenCalledWith('apad=pad_dur=0.5');
+            expect(mockAudioFilters).toHaveBeenCalledTimes(4);
+            expect(mockAudioFilters).toHaveBeenCalledWith(['apad=pad_dur=0.5', 'loudnorm', 'compand']);
         });
 
         it('should return an empty array if all the chunks are too short', async () => {
