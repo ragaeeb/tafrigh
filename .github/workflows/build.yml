@@ -32,5 +32,6 @@ jobs:
             - run: ffmpeg -version
             - run: npm run build
             - run: npm run test:ci
+            - run: npx vitest run --coverage
               env:
                   WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}

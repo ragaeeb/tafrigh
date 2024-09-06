@@ -17,7 +17,7 @@ describe('transcriptOutput', () => {
         });
 
         afterEach(async () => {
-            fs.rmdir(outputDir, { recursive: true });
+            await fs.rm(outputDir, { recursive: true });
         });
 
         it('should write out a json file', async () => {

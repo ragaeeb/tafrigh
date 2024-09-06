@@ -5,7 +5,6 @@ export interface NoiseReductionOptions {
     dialogueEnhance?: boolean;
     highpass?: number | null;
     lowpass?: number | null;
-    normalize?: boolean;
 }
 
 export interface PreprocessOptions {
@@ -33,9 +32,36 @@ export interface AudioChunk {
     range: TimeRange;
 }
 
+export interface Token {
+    confidence: number;
+    end: number;
+    start: number;
+    token: string;
+}
+
+export interface WitAiResponse {
+    text?: string;
+    confidence?: number;
+    tokens?: Token[];
+}
+
 export interface Transcript {
+    confidence?: number;
     range: TimeRange;
     text: string;
+    tokens?: Token[];
+}
+
+export interface Callbacks {
+    onPreprocessingStarted?: (filePath: string) => Promise<void>;
+    onPreprocessingFinished?: (filePath: string) => Promise<void>;
+    onPreprocessingProgress?: (percent: number) => void;
+    onSplittingStarted?: (totalChunks: number) => Promise<void>;
+    onSplittingProgress?: (chunkFilePath: string, chunkIndex: number) => void;
+    onSplittingFinished?: () => Promise<void>;
+    onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
+    onTranscriptionProgress?: (chunkIndex: number) => void;
+    onTranscriptionFinished?: (transcripts: Transcript[]) => Promise<void>;
 }
 
 export enum OutputFormat {
@@ -47,6 +73,7 @@ export interface TranscriptOutputOptions {
 }
 
 export interface TranscribeFilesOptions {
+    callbacks?: Callbacks;
     concurrency?: number;
     outputOptions?: TranscriptOutputOptions;
     preventCleanup?: boolean;

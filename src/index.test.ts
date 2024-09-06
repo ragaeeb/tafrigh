@@ -39,13 +39,13 @@ describe('transcribe', () => {
         it('should process the transcription successfully and not delete the temporary folder where the output was generated', async () => {
             const result = await transcribe(testFile);
 
-            expect(formatMedia).toHaveBeenCalledWith(testFile, expect.any(String), undefined);
+            expect(formatMedia).toHaveBeenCalledWith(testFile, expect.any(String), undefined, undefined);
             expect(formatMedia).toHaveBeenCalledOnce();
 
-            expect(splitAudioFile).toHaveBeenCalledWith('processed.mp3', '', undefined);
+            expect(splitAudioFile).toHaveBeenCalledWith('processed.mp3', '', undefined, undefined);
             expect(splitAudioFile).toHaveBeenCalledOnce();
 
-            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, undefined);
+            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, undefined, undefined);
             expect(transcribeAudioChunks).toHaveBeenCalledOnce();
 
             const data = JSON.parse(await fs.readFile(result, 'utf8'));
@@ -60,7 +60,7 @@ describe('transcribe', () => {
                 concurrency: 2,
             });
 
-            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, 2);
+            expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, 2, undefined);
 
             const isOutputFileWritten = await fileExists(result);
             expect(isOutputFileWritten).toBe(true);

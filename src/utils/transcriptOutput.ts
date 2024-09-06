@@ -18,7 +18,7 @@ export const writeTranscripts = async (
     options: TranscriptOutputOptions,
 ): Promise<string> => {
     const format = path.parse(options.outputFile).ext.slice(1);
-    logger.info(`Writing ${transcripts.length} transcripts to ${options}`);
+    logger.info(`Writing ${transcripts.length} transcripts to ${JSON.stringify(options)}`);
     const handler = OutputFormatToHandler[format as OutputFormat];
 
     if (!handler) {
