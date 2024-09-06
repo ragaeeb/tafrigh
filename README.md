@@ -1,11 +1,12 @@
-# Tafrigh
+# tafrigh
 
-Tafrigh is a TypeScript-based NodeJS audio processing library inspired by the Python Tafrigh project. It simplifies the process of transcribing audio files using external APIs like Wit.ai. The library includes built-in support for splitting audio into chunks, noise reduction, and managing multiple API keys to optimize transcription workflows for larger files.
+`tafrigh` is a NodeJS audio processing library that simplifies the process of transcribing audio files using external APIs like `wit.ai`. The library includes built-in support for splitting audio into chunks, noise reduction, and managing multiple API keys to optimize transcription workflows for larger files.
 
 ## Features
 
--   **Audio Splitting**: Automatically splits audio files into manageable chunks based on silence detection, which is ideal for services that impose file size limits.
+-   **Audio Splitting**: Automatically splits audio files into manageable chunks based on silence detection, which is ideal for services that impose file or duration size limits.
 -   **Noise Reduction**: Apply configurable noise reduction and dialogue enhancement to improve transcription accuracy.
+-   **Multiple Inputs Supported**: Supports streams, remote media file urls or a local media file paths.
 -   **Transcription**: Seamlessly integrates with Wit.ai to transcribe audio chunks, returning results in `.json` format.
 -   **Smart Concurrency**: Supports cycling between multiple Wit.ai API keys to avoid rate limits.
 -   **Flexible Configuration**: Offers a range of options to control audio processing, silence detection, chunk duration, and more.
@@ -22,98 +23,105 @@ npm install tafrigh
 ### Basic Example
 
 ```javascript
-const { transcribeFiles, init } = require('tafrigh');
+import { init, transcribe } from 'tafrigh';
 
-const filePaths = ['path/to/audiofile1.mp3', 'path/to/audiofile2.mp3'];
-const options = {
-    outputDir: 'path/to/output',
-    formattingOptions: {
-        noiseReduction: {
-            highpass: 300,
-            afftdn_nf: -20,
-            dialogueEnhance: true,
-        },
-    },
-    splitOptions: {
-        chunkDuration: 30,
-        silenceDetection: {
-            silenceThreshold: -35,
-            silenceDuration: 0.3,
-        },
-    },
-};
-
-init({ apiKey: 'your-wit-ai-key' });
-transcribeFiles(filePaths, options)
-    .then((results) => console.log('Transcription complete:', results))
-    .catch((error) => console.error('Transcription failed:', error));
+init({ apiKeys: ['your-wit-ai-key'] });
+const outputPath = await transcribe('https://your-domain.com/path/to/media.mp3'); // path to JSON of transcription
 ```
+
+The language that will be used for transcription will be associated with the language used for the wit.ai API key app.
+
+If your wit.ai key is associated with the English language, and you provide it an Arabic media file it will not produce an accurate transcription and vice-versa.
 
 ### Advanced Usage
 
 Tafrigh allows for more advanced configurations:
 
 ```javascript
+init({ apiKeys: ['wit-ai-key1', 'wit-ai-key2', 'wit-ai-key3'] });
+
 const options = {
-    apiKeyRotation: ['key1', 'key2', 'key3'], // Rotate between multiple API keys
-    outputDir: 'path/to/output',
+    concurrency: 5 // have at most 5 parallel worker threads doing the transcription
+    outputOptions: { outputFile: 'path/to/output.json' },
     splitOptions: {
         chunkDuration: 60, // Split audio into 60-second chunks
+        chunkMinThreshold: 4,
         silenceDetection: {
-            silenceThreshold: -30, // Adjust sensitivity of silence detection
-            silenceDuration: 0.5, // Minimum silence length to split at
+            silenceThreshold: -30,
+            silenceDuration: 0.5,
         },
     },
-    formattingOptions: {
+    preprocessOptions: {
         noiseReduction: {
-            highpass: 200,
+            afftdnStart: 1,
+            afftdnStop: 1,
             afftdn_nf: -25,
             dialogueEnhance: true,
+            lowpass: 1,
+            highpass: 200
         },
     },
-    loggingLevel: 'debug', // Control logging verbosity via pino
 };
 
-init({ apiKey: 'your-wit-ai-key' });
-transcribeFiles(['path/to/audiofile.mp3'], options)
-    .then((results) => console.log('Advanced Transcription complete:', results))
-    .catch((error) => console.error('Transcription failed:', error));
+const outputPath = await transcribe('path/to/test.mp3', options);
+console.log(outputPath); // path/to/output.json
 ```
 
 ## API Documentation
 
-### `transcribeFiles(filePaths: string[], options: TranscribeFilesOptions)`
+### `init(options: TafrighOptions)`
 
--   **filePaths**: An array of file paths or URLs for the audio files to be transcribed.
+-   **options**: Global options applicable to the tafrigh library.
+    -   **apiKeys**: An array of `wit.ai` API keys that tafrigh will cycle through to prevent hitting rate limits. The more keys you provide the more concurrent processing it can support to speed up the total time.
+        -   Note that the keys used here are going to impact the language of the transcription. If the media inputs your app will use for the transcription can vary between multiple languages then make sure you initialize this with the appropriate set of keys that matches the language you want to transcribe from the `wit.ai` keys dashboard.
+        -   The API keys can also be set by setting the `WIT_AI_API_KEYS` environment variable like this:
+        ```
+        WIT_AI_API_KEYS="key1 key2 key3"
+        ```
+
+### `transcribe(content: string | Readable, options: TranscribeFilesOptions)`
+
+-   **content**: Any media supported by ffmpeg (ie: wav, mp4, mp3, etc.) or a Readable stream. You can specify it as a local path like `./folder/file.mp3` or as a remote url `https://domain.com/path/to/file.mp3`. You can use this in conjuction with modules like `ytdl-core` to feed it a Stream to transcribe.
 -   **options**: A detailed object to configure splitting, noise reduction, concurrency, and more.
 
 #### Options
 
--   **apiKeyRotation**: An array of Wit.ai API keys that Tafrigh will cycle through to prevent hitting rate limits.
--   **outputDir**: The directory where the transcription results will be saved.
--   **splitOptions**: Configuration for splitting audio files:
-    -   `chunkDuration` (default: `30` seconds): Length of each audio chunk.
+-   **concurrency**: An upper limit on the total number of concurrent processing threads to allow. The minimum between the total API keys and this value will be used for the actual number of parallel threads to allow. If you have more API keys specified, you can allow for higher concurrency, but you can also limit the total number of threads by setting this value so that your CPU is not taxed.
+    -   If this property is omitted `tafrigh` will use the total number of API keys available to determine the optimal number of threads to create based on the total number of chunks created per media.
+-   **preventCleanup**: Set this to `true` if you do not want the directory created in the OS temporary folder for processing chunks and noise reduction to be automatically deleted upon transcription completion. This should rarely be set except for troubleshooting and debugging.
+-   **splitOptions**: Configuration for splitting audio files. This is important because due to the nature of our strategy for chunking the files so that we can get around maximum duration limitations of the `wit.ai` API. If we split prematurely then we can possibly split in between a word being spoken and the transcription will suffer from inaccuracy. It would be appropriate to spend some time adjusting these values if necessary so that your particular media file can be configured optimally as depending on the amount of times the speaker pauses or the background noise can vary.
+    -   `chunkDuration` (default: `60` seconds): Maximum length of each audio chunk. Note that the actual length of the chunk can sometimes be less than this value depending on if we detected that we would have split in the middle of a word so we split at the last possible silence. This value will also affect the final transcription as depending on what value is chosen for this property there will be more granular timestamps.
+    -   `chunkMinThreshold` (default: `0.9` seconds): Minimum length of each chunk. If a chunk is detected that falls below this duration it will be filtered out.
     -   `silenceDetection`: Silence-based splitting configuration:
-        -   `silenceThreshold` (default: `-35dB`): The volume level considered as silence.
-        -   `silenceDuration` (default: `0.3s`): Minimum duration of silence to trigger a split.
--   **formattingOptions**: Controls for audio formatting and noise reduction:
-    -   `noiseReduction`: Reduce background noise during processing:
-        -   `highpass` (default: `300Hz`): Frequency for high-pass filter.
-        -   `afftdn_nf` (default: `-20dB`): Noise floor adjustment.
-        -   `dialogueEnhance` (default: `false`): Enhances speech clarity.
--   **loggingLevel**: Adjust the level of logging output. Set the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
+        -   `silenceThreshold` (default: `-25`): The volume level in `dB` considered as silence. If there is more background noise that exists in your media even if the speaker is silence, and you want to have better accuracy on the chunking in the actual silences adjust this value appropriately.
+        -   `silenceDuration` (default: `0.1s`): Minimum duration of silence to trigger a split. If your media generally has longer pauses, you can increase this value to get more accurate chunking.
+-   **preprocessOptions**: Controls for audio formatting and noise reduction:
+    -   `noiseReduction`: Reduce background noise during processing.
+        -   You can omit the noise reduction step by setting this to `null`: `transcribe(file, { preprocessOptions: { noiseReduction: null } })`
+        -   `highpass` (default: `300`): Frequency in Hz for high-pass filter which isolates the voice frequencies to filter out the noise frequencies. Set this to `null` to omit it entirely and not use the default.
+        -   `lowpass` (default: `3000`): Frequency in Hz for low-pass filter to allow frequencies below a specified cutoff frequency to pass through while attenuating frequencies above that cutoff. Set this to `null` to omit it entirely and not use the default.
+        -   `afftdnStart` (default: `0`): FFT-based denoiser noise floor adjustment. This is used to specify the time to begin the noise reduction process. This must be used alongside `afftdnStop` to apply. Set this to `null` to omit it entirely and not use the default.
+        -   `afftdnStop` (default: `1.5`): The time that specifies when to stop the noise reduction process. This must be used along with `afftdnStart` to be applied. Set this to `null` to omit it entirely and not use the default.
+        -   `afftdn_nf` (default: `-20`): Specifies the noise floor parameter in dB for the denoiser. This value helps adjust the threshold for what is considered noise. Set this to `null` to omit it entirely and not use the default.
+        -   `dialogueEnhance` (default: `true`): Enhances speech clarity. It typically boosts the midrange frequencies where human speech is most prominent, making dialogue easier to understand.
+
+### Logging
+
+Adjust the level of logging output by setting the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
 
 #### Output
 
 -   The transcription result is saved in `.json` format in the specified output directory.
 
-## Configuration Limits
+The JSON file is an array that looks like this with `start` specifying the time in seconds the `text` starts and `end` marking where it ends. Note that setting an appropriate `chunkDuration` will affect how many elements this produces and the granularity of the transcription:
 
-From `constants.ts`:
-
--   **Silence Threshold**: Range is from `-50dB` to `-10dB`.
--   **Silence Duration**: Minimum `0.1s`, maximum `2s`.
--   **Chunk Duration**: Maximum `300s` (5 minutes).
+```json
+[
+    { "text": "A", "start": 0, "end": 10 },
+    { "text": "B", "start": 10, "end": 20 },
+    { "text": "C", "start": 20, "end": 30 }
+]
+```
 
 ## Contributing
 
@@ -121,7 +129,7 @@ Contributions are welcome! Please make sure your contributions adhere to the cod
 
 ## License
 
-Tafrigh is released under the MIT License. See the LICENSE file for more details.
+`tafrigh` is released under the MIT License. See the LICENSE file for more details.
 
 ## Acknowledgements
 

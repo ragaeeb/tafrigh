@@ -1,7 +1,7 @@
 {
   "name": "tafrigh",
   "version": "1.0.0",
-  "description": "A NodeJS library inspired by the Python Tafrigh project for transcribing audio/video to text.",
+  "description": "A NodeJS library for transcribing audio/video to text.",
   "main": "dist/main.js",
   "types": "dist/index.d.ts",
   "source": "src/index.ts",

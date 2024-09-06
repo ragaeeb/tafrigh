@@ -1,5 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
+import path from 'path';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectSilences, formatMedia, getMediaDuration, splitAudioFile } from './ffmpegUtils';
@@ -15,12 +16,12 @@ describe('ffmpegUtils', () => {
 
     beforeEach(() => {
         vi.clearAllMocks(); // Reset all mocks before each test
-        testFilePath = 'testing/khutbah.mp3';
+        testFilePath = path.join('testing', 'khutbah.mp3');
     });
 
     describe('getMediaDuration', () => {
         it('should detect the duration of the media', async () => {
-            const result = await getMediaDuration('testing/khutbah.wav');
+            const result = await getMediaDuration(path.join('testing', 'khutbah.wav'));
             expect(result).toBeCloseTo(33.593469, 6);
         });
     });
@@ -117,7 +118,10 @@ describe('ffmpegUtils', () => {
 
     describe('detectSilences', () => {
         it('should detect silences for -35dB for 0.2s', async () => {
-            const result = await detectSilences('testing/khutbah.wav', { silenceThreshold: -35, silenceDuration: 0.2 });
+            const result = await detectSilences(path.join('testing', 'khutbah.wav'), {
+                silenceThreshold: -35,
+                silenceDuration: 0.2,
+            });
             expect(result).toEqual([
                 { start: 0, end: 0.917551 },
                 { start: 1.258957, end: 1.50263 },
@@ -135,14 +139,14 @@ describe('ffmpegUtils', () => {
         });
 
         it('should detect silences for -35dB for 0.2s for the mp3', async () => {
-            const result = await detectSilences('testing/khutbah.mp3', { silenceThreshold: -35, silenceDuration: 0.2 });
+            const result = await detectSilences(testFilePath, { silenceThreshold: -35, silenceDuration: 0.2 });
             expect(result).toEqual([{ start: 0, end: 0.702177 }]);
         });
     });
 
     describe('splitAudio', () => {
         beforeEach(() => {
-            testFilePath = 'testing/khutbah.wav';
+            testFilePath = path.join('testing', 'khutbah.wav');
         });
 
         it('should split the audio into 4 chunks', async () => {
@@ -184,7 +188,7 @@ describe('ffmpegUtils', () => {
         });
 
         it('should filter out any chunks that are smaller than the threshold', async () => {
-            testFilePath = 'testing/khutbah.mp3';
+            testFilePath = path.join('testing', 'khutbah.mp3');
 
             const result = await splitAudioFile(testFilePath, outputDir, {
                 chunkDuration: 10,
@@ -199,7 +203,7 @@ describe('ffmpegUtils', () => {
         });
 
         it('should not chunk anything if the total duration of the media <= chunk size', async () => {
-            testFilePath = 'testing/khutbah.mp3';
+            testFilePath = path.join('testing', 'khutbah.mp3');
             const mockRun = vi.spyOn(ffmpeg.prototype, 'run');
 
             const result = await splitAudioFile(testFilePath, outputDir, {
@@ -211,7 +215,7 @@ describe('ffmpegUtils', () => {
         });
 
         it('should add padding around chunks less than 4s long', async () => {
-            testFilePath = 'testing/khutbah.mp3';
+            testFilePath = path.join('testing', 'khutbah.mp3');
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
             await splitAudioFile(testFilePath, outputDir, {

@@ -17,10 +17,10 @@ export const SPLIT_OPTIONS_DEFAULTS = {
 };
 
 export const NOISE_REDUCTION_OPTIONS_DEFAULTS = {
-    highpass: 300,
     afftdnStart: 0,
     afftdnStop: 1.5,
     afftdn_nf: -20,
     dialogueEnhance: true,
+    highpass: 300,
     lowpass: 3000,
 };
