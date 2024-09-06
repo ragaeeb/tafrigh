@@ -3,19 +3,10 @@ import https from 'https';
 import JSONStream from 'jsonstream-next';
 import { URL } from 'url';
 
+import { WitAiResponse } from './types.js';
+
 interface SpeechToTextOptions {
     apiKey: string;
-}
-
-interface WitAiResponse {
-    text?: string;
-    confidence?: number;
-    tokens?: {
-        confidence: number;
-        end: number;
-        start: number;
-        token: string;
-    }[];
 }
 
 const MARKER_FINAL_TRANSCRIPTION = 'FINAL_TRANSCRIPTION';
