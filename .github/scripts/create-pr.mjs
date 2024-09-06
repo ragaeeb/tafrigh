@@ -28,7 +28,7 @@ const run = async () => {
         const assignee = collaborators.length > 0 ? collaborators[0].login : repoOwner;
 
         // Fetch milestone number for "next"
-        const { data: milestones } = await octokit.rest.issues.listMilestonesForRepo({
+        const { data: milestones } = await octokit.issues.listMilestones({
             owner: context.repo.owner,
             repo: context.repo.repo,
         });
