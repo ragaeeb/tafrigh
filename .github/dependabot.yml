@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: 'main'
+    labels:
+        - 'dependencies'
+    commit-message:
+        prefix: 'chore'
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-type: "all"
