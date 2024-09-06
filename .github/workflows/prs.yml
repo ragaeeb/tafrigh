@@ -22,6 +22,6 @@ jobs:
             - run: npm install
 
             - name: Run PR script
-              run: node .github/scripts/create-pr.js
+              run: node .github/scripts/create-pr.mjs
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
