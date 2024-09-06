@@ -1,0 +1,36 @@
+name: Node.js CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  lfs: true
+            - name: Install Git LFS
+              run: git lfs install
+            - name: Fetch Git LFS files
+              run: git lfs pull
+
+            - name: Use Node.js 21.x
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 21.x
+            - run: npm ci
+            - uses: federicocarboni/setup-ffmpeg@v3
+              id: setup-ffmpeg
+              with:
+                  ffmpeg-version: release
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - run: ffmpeg -version
+            - run: npm run build
+            - run: npm run test:ci
+              env:
+                  WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}
