@@ -21,9 +21,6 @@ describe('ffmpegUtils', () => {
 
     describe('getMediaDuration', () => {
         it('should detect the duration of the media', async () => {
-            const doesFileExist = await fileExists(path.join('testing', 'khutbah.wav'));
-            console.log('DOES FILE EXIST', path.join('testing', 'khutbah.wav'), doesFileExist);
-
             const result = await getMediaDuration(path.join('testing', 'khutbah.wav'));
             expect(result).toBeCloseTo(33.593469, 6);
         });
