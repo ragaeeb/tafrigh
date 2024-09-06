@@ -23,4 +23,5 @@ export const NOISE_REDUCTION_OPTIONS_DEFAULTS = {
     dialogueEnhance: true,
     highpass: 300,
     lowpass: 3000,
+    normalize: true,
 };
