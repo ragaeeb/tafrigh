@@ -1,42 +1,35 @@
-import { getOctokit, context } from '@actions/github'; // Import 'context' from '@actions/github'
+import { getOctokit, context } from '@actions/github';
 import { setFailed, info } from '@actions/core';
 
 const run = async () => {
     try {
-        // Use process.env to get the token from environment variables
         const token = process.env.GITHUB_TOKEN;
+        if (!token) throw new Error('GITHUB_TOKEN is not defined');
 
-        if (!token) {
-            throw new Error('GITHUB_TOKEN is not defined');
-        }
+        const octokit = getOctokit(token);
+        const prTitle = context.payload.commits[0].message;
+        const headBranch = context.ref.replace('refs/heads/', '');
+        const baseBranch = 'main';
+        const repoOwner = context.repo.owner;
 
-        const octokit = getOctokit(token); // Initialize Octokit with the token
-
-        const prTitle = context.payload.commits[0].message; // Get the PR title from the commit message
-        const headBranch = context.ref.replace('refs/heads/', ''); // Get the branch name
-        const baseBranch = 'main'; // The base branch for the PR
-
-        const repoOwner = context.repo.owner; // Repository owner
-
-        // Fetch the list of collaborators
+        // Fetch collaborators
         const { data: collaborators } = await octokit.rest.repos.listCollaborators({
             owner: repoOwner,
             repo: context.repo.repo,
         });
 
-        // If there are collaborators, pick the first one; otherwise, fallback to the repo owner
         const assignee = collaborators.length > 0 ? collaborators[0].login : repoOwner;
 
-        // Fetch milestone number for "next"
-        const { data: milestones } = await octokit.issues.listMilestones({
-            owner: context.repo.owner,
+        // Fetch milestones
+        const { data: milestones } = await octokit.rest.issues.listMilestones({
+            owner: repoOwner,
             repo: context.repo.repo,
         });
         const milestone = milestones.find((m) => m.title === 'next');
 
-        // Create a pull request
+        // Create pull request
         const { data: pr } = await octokit.rest.pulls.create({
-            owner: context.repo.owner,
+            owner: repoOwner,
             repo: context.repo.repo,
             title: prTitle,
             head: headBranch,
