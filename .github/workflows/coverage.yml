@@ -12,12 +12,18 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: Set up Node
+            - name: Use Node.js 21.x
               uses: actions/setup-node@v4
-
+              with:
+                  node-version: 21.x
             - name: Install dependencies
-              run: npm install
-
+              run: npm ci
+            - uses: federicocarboni/setup-ffmpeg@v3
+              id: setup-ffmpeg
+              with:
+                  ffmpeg-version: release
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - run: ffmpeg -version
             - name: Run tests
               run: npx vitest run --coverage
 
