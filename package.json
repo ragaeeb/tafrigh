@@ -8,9 +8,9 @@
   "type": "module",
   "scripts": {
     "build": "parcel build",
-    "test": "node --env-file .env.test node_modules/.bin/vitest run",
+    "test": "node --env-file .env.test node_modules/.bin/vitest run --coverage",
     "test:e2e": "node --env-file .env.test node_modules/.bin/vitest --config vitest.e2e.config.ts --run",
-    "test:ci": "vitest run",
+    "test:ci": "vitest run --coverage",
     "test:e2e:ci": "vitest --config vitest.e2e.config.ts --run"
   },
   "files": [
