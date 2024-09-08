@@ -24,15 +24,17 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: 21.x
-            - run: npm ci
+            - name: Enable Corepack
+              run: corepack enable
+            - run: pnpm install --frozen-lockfile
             - uses: federicocarboni/setup-ffmpeg@v3
               id: setup-ffmpeg
               with:
                   ffmpeg-version: release
                   github-token: ${{ secrets.GITHUB_TOKEN }}
             - run: ffmpeg -version
-            - run: npm run build
-            - run: npm run test:ci
+            - run: pnpm run build
+            - run: pnpm run test
               env:
                   WIT_AI_API_KEYS: ${{secrets.WIT_AI_API_KEYS}}
             - name: Upload results to Codecov

@@ -63,6 +63,17 @@ const options = {
             highpass: 200
         },
     },
+    callbacks: {
+        onPreprocessingFinished: async (filePath: string) => console.log(`Preprocessed ${filePath}`),
+        onPreprocessingProgress: async (percent: number) => console.log(`Preprocessing ${percent}% complete`),
+        onPreprocessingStarted: async (filePath: string) => console.log(`Preprocessed ${filePath}`),
+        onSplittingFinished: async () => console.log(`Finished splitting media`),
+        onSplittingProgress: async (chunkFilePath: string, chunkIndex: number) => console.log(`Chunked part ${chunkIndex} ${chunkFilePath}`),
+        onSplittingStarted: async (totalChunks: number) => console.log(`Chunking ${totalChunks} parts`),
+        onTranscriptionFinished: async (transcripts: Transcript[]) => console.log(`Transcribed ${transcripts.length} chunks`),
+        onTranscriptionProgress: async (chunkIndex: number) => console.log(`Transcribing part ${chunkIndex}`),
+        onTranscriptionStarted: async (totalChunks: number) => console.log(`Transcribing ${totalChunks} chunks`),
+    }
 };
 
 const outputPath = await transcribe('path/to/test.mp3', options);
