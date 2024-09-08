@@ -8,10 +8,9 @@
   "type": "module",
   "scripts": {
     "build": "parcel build",
-    "test": "node --env-file .env.test node_modules/.bin/vitest run --coverage",
-    "test:e2e": "node --env-file .env.test node_modules/.bin/vitest --config vitest.e2e.config.ts --run",
-    "test:ci": "vitest run --coverage",
-    "test:e2e:ci": "vitest --config vitest.e2e.config.ts --run"
+    "test": "vitest run --coverage",
+    "test:e2e": "node --env-file .env $(which pnpm) exec vitest run --coverage --config vitest.e2e.config.ts",
+    "test:e2e:ci": "pnpm exec vitest --config vitest.e2e.config.ts --run"
   },
   "files": [
     "dist/main.js",
@@ -48,14 +47,14 @@
     "@types/fluent-ffmpeg": "^2.1.26",
     "@types/jsonstream-next": "^3.0.3",
     "@types/node": "^22.5.4",
-    "@types/pino": "^7.0.5",
-    "@types/pino-pretty": "^5.0.0",
     "@vitest/coverage-v8": "^2.0.5",
-    "eslint": "^8.57.0",
+    "dotenv-vault": "^1.26.2",
+    "eslint": "^9.10.0",
     "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
+    "eslint-plugin-typescript-sort-keys": "^3.2.0",
     "eslint-plugin-vitest": "^0.5.4",
     "eslint-plugin-vitest-globals": "^1.5.0",
     "parcel": "^2.12.0",

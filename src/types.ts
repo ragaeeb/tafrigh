@@ -12,8 +12,9 @@ export interface PreprocessOptions {
 }
 
 export interface SilenceDetectionOptions {
-    silenceThreshold: number; // -50 for '-50dB'
-    silenceDuration: number; // in seconds (ie: 0.5 for 0.5s)
+    // -50 for '-50dB'
+    silenceDuration: number;
+    silenceThreshold: number; // in seconds (ie: 0.5 for 0.5s)
 }
 
 export interface SplitOptions {
@@ -23,8 +24,8 @@ export interface SplitOptions {
 }
 
 export interface TimeRange {
-    start: number;
     end: number;
+    start: number;
 }
 
 export interface AudioChunk {
@@ -40,8 +41,8 @@ export interface Token {
 }
 
 export interface WitAiResponse {
-    text?: string;
     confidence?: number;
+    text?: string;
     tokens?: Token[];
 }
 
@@ -53,15 +54,15 @@ export interface Transcript {
 }
 
 export interface Callbacks {
-    onPreprocessingStarted?: (filePath: string) => Promise<void>;
     onPreprocessingFinished?: (filePath: string) => Promise<void>;
     onPreprocessingProgress?: (percent: number) => void;
-    onSplittingStarted?: (totalChunks: number) => Promise<void>;
-    onSplittingProgress?: (chunkFilePath: string, chunkIndex: number) => void;
+    onPreprocessingStarted?: (filePath: string) => Promise<void>;
     onSplittingFinished?: () => Promise<void>;
-    onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
-    onTranscriptionProgress?: (chunkIndex: number) => void;
+    onSplittingProgress?: (chunkFilePath: string, chunkIndex: number) => void;
+    onSplittingStarted?: (totalChunks: number) => Promise<void>;
     onTranscriptionFinished?: (transcripts: Transcript[]) => Promise<void>;
+    onTranscriptionProgress?: (chunkIndex: number) => void;
+    onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
 }
 
 export enum OutputFormat {
@@ -76,8 +77,8 @@ export interface TranscribeFilesOptions {
     callbacks?: Callbacks;
     concurrency?: number;
     outputOptions?: TranscriptOutputOptions;
-    preventCleanup?: boolean;
     preprocessOptions?: PreprocessOptions;
+    preventCleanup?: boolean;
     splitOptions?: SplitOptions;
 }
 

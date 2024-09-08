@@ -25,16 +25,18 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 21.x
-            - run: npm ci
+            - name: Enable Corepack
+              run: corepack enable
+            - run: pnpm install --frozen-lockfile
             - uses: federicocarboni/setup-ffmpeg@v3
               id: setup-ffmpeg
               with:
                   ffmpeg-version: release
                   github-token: ${{ secrets.GITHUB_TOKEN }}
             - run: ffmpeg -version
-            - run: npm run test:ci
-            - run: npm run build
-            - run: npx semantic-release
+            - run: pnpm run test:ci
+            - run: pnpm run build
+            - run: pnpm exec semantic-release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NPM_TOKEN: ${{ secrets.PUBLISH_NPM_TOKEN }}

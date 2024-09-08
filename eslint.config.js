@@ -7,6 +7,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import sortKeys from 'eslint-plugin-sort-destructure-keys';
 import vitest from 'eslint-plugin-vitest';
 import vitestGlobals from 'eslint-plugin-vitest-globals';
+import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 
 export default [
     {
@@ -28,6 +29,7 @@ export default [
             'simple-import-sort': simpleImportSort,
             vitest,
             import: importPlugin,
+            'typescript-sort-keys': typescriptSortKeys,
         },
         rules: {
             ...eslint.configs.recommended.rules,
@@ -40,6 +42,8 @@ export default [
             'sort-destructure-keys/sort-destructure-keys': ['warn', { caseSensitive: false }],
             radix: 'off',
             '@typescript-eslint/no-explicit-any': 'off',
+            'typescript-sort-keys/interface': 'warn',
+            'typescript-sort-keys/string-enum': 'warn',
         },
     },
     {

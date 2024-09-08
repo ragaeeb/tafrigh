@@ -19,3 +19,7 @@ yarn-error.log*
 .parcel-cache
 dist
 coverage
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
