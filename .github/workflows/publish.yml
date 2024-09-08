@@ -34,7 +34,7 @@ jobs:
                   ffmpeg-version: release
                   github-token: ${{ secrets.GITHUB_TOKEN }}
             - run: ffmpeg -version
-            - run: pnpm run test:ci
+            - run: pnpm run test
             - run: pnpm run build
             - run: pnpm exec semantic-release
               env:
