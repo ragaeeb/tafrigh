@@ -28,12 +28,12 @@ describe('transcribe', () => {
         let testFile;
 
         beforeEach(() => {
-            chunkFiles = [{ filename: 'chunk-001.wav', range: { start: 0, end: 10 } }];
+            chunkFiles = [{ filename: 'chunk-001.wav', range: { end: 10, start: 0 } }];
             testFile = 'audio-file.mp3';
 
             (formatMedia as Mock).mockResolvedValue('processed.mp3');
             (splitAudioFile as Mock).mockResolvedValue(chunkFiles);
-            (transcribeAudioChunks as Mock).mockResolvedValue([{ range: { start: 0, end: 10 }, text: 'Hello World' }]);
+            (transcribeAudioChunks as Mock).mockResolvedValue([{ range: { end: 10, start: 0 }, text: 'Hello World' }]);
         });
 
         it('should process the transcription successfully and not delete the temporary folder where the output was generated', async () => {
@@ -49,15 +49,15 @@ describe('transcribe', () => {
             expect(transcribeAudioChunks).toHaveBeenCalledOnce();
 
             const data = JSON.parse(await fs.readFile(result, 'utf8'));
-            expect(data).toEqual([{ start: 0, end: 10, text: 'Hello World' }]);
+            expect(data).toEqual([{ end: 10, start: 0, text: 'Hello World' }]);
         });
 
         it('should process the transcription successfully and not delete the temporary folder if user specifies it should not be cleaned up', async () => {
             const outputFile = path.join(await createTempDir(), 'output.json');
             const result = await transcribe(testFile, {
-                preventCleanup: true,
-                outputOptions: { outputFile },
                 concurrency: 2,
+                outputOptions: { outputFile },
+                preventCleanup: true,
             });
 
             expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, 2, undefined);

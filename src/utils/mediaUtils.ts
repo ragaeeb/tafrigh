@@ -6,7 +6,7 @@ export const mapSilenceResultsToChunkRanges = (
     totalDuration: number,
 ): TimeRange[] => {
     if (chunkDuration >= totalDuration) {
-        return [{ start: 0, end: totalDuration }];
+        return [{ end: totalDuration, start: 0 }];
     }
 
     const chunks: TimeRange[] = [];
@@ -20,10 +20,10 @@ export const mapSilenceResultsToChunkRanges = (
 
         if (relevantSilences.length > 0) {
             const lastSilenceInChunk = relevantSilences[0];
-            chunks.push({ start: currentStart, end: lastSilenceInChunk.start });
+            chunks.push({ end: lastSilenceInChunk.start, start: currentStart });
             currentStart = lastSilenceInChunk.start;
         } else {
-            chunks.push({ start: currentStart, end: chunkEnd });
+            chunks.push({ end: chunkEnd, start: currentStart });
             currentStart = chunkEnd;
         }
     }

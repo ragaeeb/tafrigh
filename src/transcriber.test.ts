@@ -7,8 +7,8 @@ import { dictation } from './wit.ai';
 
 vi.mock('./wit.ai');
 vi.mock('./apiKeys.js', () => ({
-    getNextApiKey: vi.fn(),
     getApiKeysCount: vi.fn(),
+    getNextApiKey: vi.fn(),
 }));
 vi.mock('./utils/logger');
 
@@ -20,8 +20,8 @@ describe('transcriber', () => {
         beforeEach(() => {
             apiKey = 'mock-api-key';
             mockChunkFiles = [
-                { filename: 'chunk1.wav', range: { start: 0, end: 10 } },
-                { filename: 'chunk2.wav', range: { start: 10, end: 20 } },
+                { filename: 'chunk1.wav', range: { end: 10, start: 0 } },
+                { filename: 'chunk2.wav', range: { end: 20, start: 10 } },
             ];
 
             vi.clearAllMocks();
@@ -35,9 +35,9 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk2' });
 
                 const callbacks = {
-                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
-                    onTranscriptionProgress: vitest.fn(),
                     onTranscriptionFinished: vitest.fn().mockResolvedValue(null),
+                    onTranscriptionProgress: vitest.fn(),
+                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
                 };
 
                 const result = await transcribeAudioChunks(mockChunkFiles, 1, callbacks);
@@ -88,9 +88,9 @@ describe('transcriber', () => {
         describe('concurrent threads', () => {
             it('should transcribe multiple chunks in parallel with limited concurrency', async () => {
                 mockChunkFiles = [
-                    { filename: 'chunk1.mp3', range: { start: 0, end: 10 } },
-                    { filename: 'chunk2.mp3', range: { start: 10, end: 20 } },
-                    { filename: 'chunk3.mp3', range: { start: 20, end: 30 } },
+                    { filename: 'chunk1.mp3', range: { end: 10, start: 0 } },
+                    { filename: 'chunk2.mp3', range: { end: 20, start: 10 } },
+                    { filename: 'chunk3.mp3', range: { end: 30, start: 20 } },
                 ];
 
                 const fakeTranscript = (text: string) => ({ text });
@@ -103,9 +103,9 @@ describe('transcriber', () => {
                 (getApiKeysCount as any).mockReturnValue(2); // Simulate 2 available API keys
 
                 const callbacks = {
-                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
-                    onTranscriptionProgress: vitest.fn(),
                     onTranscriptionFinished: vitest.fn().mockResolvedValue(null),
+                    onTranscriptionProgress: vitest.fn(),
+                    onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
                 };
 
                 const result = await transcribeAudioChunks(mockChunkFiles, 2, callbacks);
@@ -134,8 +134,8 @@ describe('transcriber', () => {
 
             it('should limit concurrency when more API keys than chunks', async () => {
                 const chunkFiles = [
-                    { filename: 'chunk1.mp3', range: { start: 0, end: 10 } },
-                    { filename: 'chunk2.mp3', range: { start: 10, end: 20 } },
+                    { filename: 'chunk1.mp3', range: { end: 10, start: 0 } },
+                    { filename: 'chunk2.mp3', range: { end: 20, start: 10 } },
                 ];
 
                 const fakeTranscript = (text: string) => ({ text });

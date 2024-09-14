@@ -1,6 +1,5 @@
-import { afterEach } from 'node:test';
-
 import { promises as fs } from 'fs';
+import { afterEach } from 'node:test';
 import path from 'path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -22,9 +21,9 @@ describe('transcriptOutput', () => {
 
         it('should write out a json file', async () => {
             const transcripts: Transcript[] = [
-                { text: 'A', range: { start: 0, end: 10 } },
-                { text: 'B', range: { start: 10, end: 20 } },
-                { text: 'C', range: { start: 20, end: 30 } },
+                { range: { end: 10, start: 0 }, text: 'A' },
+                { range: { end: 20, start: 10 }, text: 'B' },
+                { range: { end: 30, start: 20 }, text: 'C' },
             ];
 
             const jsonFile = await writeTranscripts(transcripts, {
@@ -35,9 +34,9 @@ describe('transcriptOutput', () => {
             const data = JSON.parse(rawData);
 
             expect(data).toEqual([
-                { text: 'A', start: 0, end: 10 },
-                { text: 'B', start: 10, end: 20 },
-                { text: 'C', start: 20, end: 30 },
+                { end: 10, start: 0, text: 'A' },
+                { end: 20, start: 10, text: 'B' },
+                { end: 30, start: 20, text: 'C' },
             ]);
         });
 

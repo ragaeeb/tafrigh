@@ -34,8 +34,8 @@ export const speechToText = async (filePath: string, options: SpeechToTextOption
         const stream = fs.createReadStream(filePath);
         const url = new URL('https://api.wit.ai/speech');
         const requestOptions = {
-            method: 'POST',
             headers,
+            method: 'POST',
         };
 
         const req = https.request(url, requestOptions, (res) => {
@@ -49,8 +49,8 @@ export const speechToText = async (filePath: string, options: SpeechToTextOption
                 if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                     const parsedData = JSON.parse(data);
                     resolve({
-                        text: parsedData.text,
                         confidence: parsedData.speech?.confidence,
+                        text: parsedData.text,
                         tokens: parsedData.speech?.tokens,
                     });
                 } else {
@@ -71,13 +71,13 @@ export async function dictation(filePath: string, options: SpeechToTextOptions):
     const stream = fs.createReadStream(filePath);
 
     const requestOptions = {
-        hostname: 'api.wit.ai',
-        path: '/dictation?v=20240304',
-        method: 'POST',
         headers: {
             ...getCommonHeaders(filePath, options),
             Accept: 'application/vnd.wit.20200513+json',
         },
+        hostname: 'api.wit.ai',
+        method: 'POST',
+        path: '/dictation?v=20240304',
     };
 
     return new Promise<WitAiResponse>((resolve, reject) => {
@@ -87,7 +87,7 @@ export async function dictation(filePath: string, options: SpeechToTextOptions):
                 return;
             }
 
-            const finalObject: WitAiResponse = { tokens: [], text: '' };
+            const finalObject: WitAiResponse = { text: '', tokens: [] };
             let currentObject: WitAiResponse = {};
 
             const parser = JSONStream.parse('*');
