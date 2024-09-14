@@ -16,7 +16,7 @@ export const init = (options: TafrighOptions) => {
     setApiKeys(options.apiKeys);
 };
 
-export const transcribe = async (content: string | Readable, options?: TranscribeFilesOptions): Promise<string> => {
+export const transcribe = async (content: Readable | string, options?: TranscribeFilesOptions): Promise<string> => {
     validateTranscribeFileOptions(options);
 
     const outputDir = await createTempDir();

@@ -27,16 +27,15 @@ describe('wit.ai', () => {
 
         it('should process the WAV file and return the final transcription', async () => {
             const mockResponse = {
-                statusCode: 200,
                 on: vi.fn((event, callback) => {
                     if (event === 'data') {
                         callback(
                             JSON.stringify({
-                                text: 'test transcription',
                                 speech: {
                                     confidence: 0.9,
-                                    tokens: [{ confidence: 0.9, start: 0, end: 5, token: 'test' }],
+                                    tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
                                 },
+                                text: 'test transcription',
                             }),
                         );
                     }
@@ -44,29 +43,29 @@ describe('wit.ai', () => {
                         callback();
                     }
                 }),
+                statusCode: 200,
             };
 
             // @ts-expect-error ignore
             vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
                 callback(mockResponse as any);
                 return {
-                    on: vi.fn(),
                     end: vi.fn(),
+                    on: vi.fn(),
                 };
             });
 
             const result = await speechToText(filePath, options);
 
             expect(result).toEqual({
-                text: 'test transcription',
                 confidence: 0.9,
-                tokens: [{ confidence: 0.9, start: 0, end: 5, token: 'test' }],
+                text: 'test transcription',
+                tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
             });
         });
 
         it('should handle HTTP error response', async () => {
             const mockResponse = {
-                statusCode: 500,
                 on: vi.fn((event, callback) => {
                     if (event === 'data') {
                         callback('');
@@ -75,14 +74,15 @@ describe('wit.ai', () => {
                         callback();
                     }
                 }),
+                statusCode: 500,
             };
 
             // @ts-expect-error ignore
             vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
                 callback(mockResponse as any);
                 return {
-                    on: vi.fn(),
                     end: vi.fn(),
+                    on: vi.fn(),
                 };
             });
 
@@ -93,12 +93,12 @@ describe('wit.ai', () => {
             // @ts-expect-error ignore
             vi.spyOn(https, 'request').mockImplementation(() => {
                 const req = {
+                    end: vi.fn(),
                     on: vi.fn((event, callback) => {
                         if (event === 'error') {
                             callback(new Error('test error'));
                         }
                     }),
-                    end: vi.fn(),
                 };
                 return req;
             });
@@ -113,14 +113,14 @@ describe('wit.ai', () => {
 
         it('should return the final transcription', async () => {
             const mockResponse = {
-                statusCode: 200,
                 pipe: vi.fn().mockReturnThis(),
+                statusCode: 200,
             };
 
             const mockJSONStream = {
                 on: vi.fn((event, callback) => {
                     if (event === 'data') {
-                        callback({ tokens: [{ token: 'test', start: 0, end: 5, confidence: 0.9 }], confidence: 0.95 });
+                        callback({ confidence: 0.95, tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }] });
                         callback('some text');
                         callback('FINAL_TRANSCRIPTION');
                     } else if (event === 'end') {
@@ -133,8 +133,8 @@ describe('wit.ai', () => {
             vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
                 callback(mockResponse);
                 return {
-                    on: vi.fn(),
                     end: vi.fn(),
+                    on: vi.fn(),
                 };
             });
 
@@ -143,16 +143,16 @@ describe('wit.ai', () => {
             const result = await dictation(filePath, options);
 
             expect(result).toEqual({
-                text: ' some text',
                 confidence: 0.95,
-                tokens: [{ token: 'test', start: 0, end: 5, confidence: 0.9 }],
+                text: ' some text',
+                tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
             });
         });
 
         it('should handle HTTP error', async () => {
             const mockResponse = {
-                statusCode: 500,
                 pipe: vi.fn().mockReturnThis(),
+                statusCode: 500,
             };
 
             // @ts-expect-error ignore
@@ -170,12 +170,12 @@ describe('wit.ai', () => {
         it('should handle https request error', async () => {
             vi.spyOn(https, 'request').mockImplementation(() => {
                 const req = {
+                    end: vi.fn(),
                     on: vi.fn((event, callback) => {
                         if (event === 'error') {
                             callback(new Error('test error'));
                         }
                     }),
-                    end: vi.fn(),
                 };
                 return req as any;
             });
@@ -185,17 +185,17 @@ describe('wit.ai', () => {
 
         it('should handle JSONStream error', async () => {
             const mockResponse = {
-                statusCode: 200,
                 pipe: vi.fn().mockReturnThis(),
+                statusCode: 200,
             };
 
             const mockJSONStream = {
-                parse: vi.fn().mockReturnThis(),
                 on: vi.fn((event, callback) => {
                     if (event === 'error') {
                         callback(new Error('test error'));
                     }
                 }),
+                parse: vi.fn().mockReturnThis(),
             };
 
             // @ts-expect-error ignore

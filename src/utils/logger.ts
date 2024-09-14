@@ -8,7 +8,7 @@ const stream = pretty({
 
 const logger: Logger = pino(
     {
-        base: { pid: undefined, hostname: undefined }, // This will remove pid and hostname but keep time
+        base: { hostname: undefined, pid: undefined }, // This will remove pid and hostname but keep time
         level: process.env.LOG_LEVEL || 'info',
     },
     stream,

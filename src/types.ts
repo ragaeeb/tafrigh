@@ -1,10 +1,10 @@
 export interface NoiseReductionOptions {
-    afftdnStart?: number | null;
-    afftdnStop?: number | null;
-    afftdn_nf?: number | null;
+    afftdn_nf?: null | number;
+    afftdnStart?: null | number;
+    afftdnStop?: null | number;
     dialogueEnhance?: boolean;
-    highpass?: number | null;
-    lowpass?: number | null;
+    highpass?: null | number;
+    lowpass?: null | number;
 }
 
 export interface PreprocessOptions {

@@ -40,7 +40,7 @@ const buildConversionFilters = ({
 };
 
 export const formatMedia = async (
-    input: string | Readable,
+    input: Readable | string,
     outputDir: string,
     options?: PreprocessOptions,
     callbacks?: Callbacks,
@@ -98,14 +98,14 @@ export const getMediaDuration = async (filePath: string): Promise<number> => {
 
 const mapOutputToSilenceResults = (silenceLines: string[]): TimeRange[] => {
     const silences: TimeRange[] = [];
-    let currentSilenceStart: number | null = null;
+    let currentSilenceStart: null | number = null;
 
     silenceLines.forEach((line) => {
         if (line.includes('silence_start')) {
             currentSilenceStart = parseFloat(line.match(/silence_start: (\d+\.\d+)/)?.[1] || '0');
         } else if (line.includes('silence_end') && currentSilenceStart !== null) {
             const silenceEnd = parseFloat(line.match(/silence_end: (\d+\.\d+)/)?.[1] || '0');
-            silences.push({ start: currentSilenceStart, end: silenceEnd });
+            silences.push({ end: silenceEnd, start: currentSilenceStart });
             currentSilenceStart = null; // Reset for the next detection
         }
     });
@@ -160,10 +160,10 @@ export const splitAudioFile = async (
     const totalDuration = await getMediaDuration(filePath);
 
     if (chunkDuration >= totalDuration) {
-        return [{ range: { start: 0, end: totalDuration }, filename: filePath }];
+        return [{ filename: filePath, range: { end: totalDuration, start: 0 } }];
     }
 
-    const silences = await detectSilences(filePath, { silenceThreshold, silenceDuration });
+    const silences = await detectSilences(filePath, { silenceDuration, silenceThreshold });
 
     const chunkRanges: TimeRange[] = mapSilenceResultsToChunkRanges(silences, chunkDuration, totalDuration).filter(
         (r) => r.end - r.start > chunkMinThreshold,
@@ -172,12 +172,12 @@ export const splitAudioFile = async (
     logger.debug(chunkRanges, 'chunkRanges');
 
     const chunks: AudioChunk[] = chunkRanges.map((range, index) => ({
-        range,
         filename: path.format({
             dir: outputDir || parsedPath.dir,
             ext: parsedPath.ext,
             name: `${parsedPath.name}-chunk-${index.toString().padStart(3, '0')}`,
         }),
+        range,
     }));
 
     if (chunks.length > 0) {

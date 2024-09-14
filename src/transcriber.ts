@@ -1,7 +1,7 @@
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
-import { AudioChunk, Callbacks, TimeRange, Transcript, WitAiResponse } from './types.js';
+import { AudioChunk, Callbacks, Transcript, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
 import { dictation } from './wit.ai.js';
 
@@ -9,7 +9,7 @@ const requestNextTranscript = async (
     chunk: AudioChunk,
     index: number,
     callbacks?: Callbacks,
-): Promise<Transcript | null> => {
+): Promise<null | Transcript> => {
     const response: WitAiResponse = await dictation(chunk.filename, { apiKey: getNextApiKey() });
 
     if (callbacks?.onTranscriptionProgress) {

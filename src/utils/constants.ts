@@ -13,13 +13,13 @@ export const DEFAULT_SHORT_CLIP_PADDING = 0.5;
 export const SPLIT_OPTIONS_DEFAULTS = {
     chunkDuration: 60,
     chunkMinThreshold: 0.9,
-    silenceDetection: { silenceThreshold: -25, silenceDuration: 0.1 },
+    silenceDetection: { silenceDuration: 0.1, silenceThreshold: -25 },
 };
 
 export const NOISE_REDUCTION_OPTIONS_DEFAULTS = {
+    afftdn_nf: -20,
     afftdnStart: 0,
     afftdnStop: 1.5,
-    afftdn_nf: -20,
     dialogueEnhance: true,
     highpass: 300,
     lowpass: 3000,

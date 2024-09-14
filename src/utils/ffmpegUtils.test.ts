@@ -31,9 +31,9 @@ describe('ffmpegUtils', () => {
             const mockAudioFilters = vi.spyOn(ffmpeg.prototype, 'audioFilters');
 
             const callbacks = {
-                onPreprocessingStarted: vitest.fn().mockResolvedValue(null),
-                onPreprocessingProgress: vitest.fn(),
                 onPreprocessingFinished: vitest.fn().mockResolvedValue(null),
+                onPreprocessingProgress: vitest.fn(),
+                onPreprocessingStarted: vitest.fn().mockResolvedValue(null),
             };
 
             // Run the actual function with noiseReduction enabled with custom values
@@ -42,11 +42,11 @@ describe('ffmpegUtils', () => {
                 outputDir,
                 {
                     noiseReduction: {
-                        highpass: 250,
+                        afftdn_nf: -25,
                         afftdnStart: 0.5,
                         afftdnStop: 2,
-                        afftdn_nf: -25,
                         dialogueEnhance: true,
+                        highpass: 250,
                         lowpass: 3500,
                     },
                 },
@@ -78,11 +78,11 @@ describe('ffmpegUtils', () => {
             // Run the actual function with noiseReduction enabled with custom values
             await formatMedia(testFilePath, outputDir, {
                 noiseReduction: {
-                    highpass: null,
+                    afftdn_nf: null,
                     afftdnStart: null,
                     afftdnStop: 2,
-                    afftdn_nf: null,
                     dialogueEnhance: true,
+                    highpass: null,
                     lowpass: null,
                 },
             });
@@ -139,28 +139,28 @@ describe('ffmpegUtils', () => {
     describe('detectSilences', () => {
         it('should detect silences for -35dB for 0.2s', async () => {
             const result = await detectSilences(path.join('testing', 'khutbah.wav'), {
-                silenceThreshold: -35,
                 silenceDuration: 0.2,
+                silenceThreshold: -35,
             });
             expect(result).toEqual([
-                { start: 0, end: 0.917551 },
-                { start: 1.258957, end: 1.50263 },
-                { start: 7.343764, end: 8.355329 },
-                { start: 14.573605, end: 14.872517 },
-                { start: 14.872562, end: 15.507075 },
-                { start: 18.28966, end: 18.541905 },
-                { start: 18.591066, end: 19.119955 },
-                { start: 23.876961, end: 24.123311 },
-                { start: 24.311701, end: 24.571837 },
-                { start: 27.561224, end: 27.952517 },
-                { start: 28.062132, end: 28.43356 },
-                { start: 33.169569, end: 33.384943 },
+                { end: 0.917551, start: 0 },
+                { end: 1.50263, start: 1.258957 },
+                { end: 8.355329, start: 7.343764 },
+                { end: 14.872517, start: 14.573605 },
+                { end: 15.507075, start: 14.872562 },
+                { end: 18.541905, start: 18.28966 },
+                { end: 19.119955, start: 18.591066 },
+                { end: 24.123311, start: 23.876961 },
+                { end: 24.571837, start: 24.311701 },
+                { end: 27.952517, start: 27.561224 },
+                { end: 28.43356, start: 28.062132 },
+                { end: 33.384943, start: 33.169569 },
             ]);
         });
 
         it('should detect silences for -35dB for 0.2s for the mp3', async () => {
-            const result = await detectSilences(testFilePath, { silenceThreshold: -35, silenceDuration: 0.2 });
-            expect(result).toEqual([{ start: 0, end: 0.702177 }]);
+            const result = await detectSilences(testFilePath, { silenceDuration: 0.2, silenceThreshold: -35 });
+            expect(result).toEqual([{ end: 0.702177, start: 0 }]);
         });
     });
 
@@ -174,8 +174,8 @@ describe('ffmpegUtils', () => {
                 chunkDuration: 10,
                 chunkMinThreshold: 0.01,
                 silenceDetection: {
-                    silenceThreshold: -35,
                     silenceDuration: 0.2,
+                    silenceThreshold: -35,
                 },
             });
 
@@ -214,8 +214,8 @@ describe('ffmpegUtils', () => {
                 chunkDuration: 10,
                 chunkMinThreshold: 1,
                 silenceDetection: {
-                    silenceThreshold: -35,
                     silenceDuration: 0.2,
+                    silenceThreshold: -35,
                 },
             });
 
@@ -230,7 +230,7 @@ describe('ffmpegUtils', () => {
                 chunkDuration: 60,
             });
 
-            expect(result).toEqual([{ range: { start: 0, end: 33.5935 }, filename: testFilePath }]);
+            expect(result).toEqual([{ filename: testFilePath, range: { end: 33.5935, start: 0 } }]);
             expect(mockRun).not.toHaveBeenCalled();
         });
 
@@ -242,8 +242,8 @@ describe('ffmpegUtils', () => {
                 chunkDuration: 10,
                 chunkMinThreshold: 1,
                 silenceDetection: {
-                    silenceThreshold: -35,
                     silenceDuration: 0.2,
+                    silenceThreshold: -35,
                 },
             });
 
@@ -256,8 +256,8 @@ describe('ffmpegUtils', () => {
                 chunkDuration: 0.5,
                 chunkMinThreshold: 1,
                 silenceDetection: {
-                    silenceThreshold: -35,
                     silenceDuration: 0.2,
+                    silenceThreshold: -35,
                 },
             });
 
