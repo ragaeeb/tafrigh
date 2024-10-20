@@ -1,3 +1,4 @@
+import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
@@ -5,15 +6,14 @@ import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { transcribe } from './index.js';
 import { transcribeAudioChunks } from './transcriber.js';
-import { formatMedia, splitAudioFile } from './utils/ffmpegUtils.js';
 import { createTempDir, fileExists } from './utils/io.js';
 
 vi.mock('./transcriber.js', () => ({
     transcribeAudioChunks: vi.fn(),
 }));
-vi.mock('./utils/ffmpegUtils.js', () => ({
+vi.mock('ffmpeg-simplified', () => ({
     formatMedia: vi.fn(),
-    splitAudioFile: vi.fn(),
+    splitFileOnSilences: vi.fn(),
 }));
 
 vi.mock('./utils/logger.js');
@@ -32,7 +32,7 @@ describe('transcribe', () => {
             testFile = 'audio-file.mp3';
 
             (formatMedia as Mock).mockResolvedValue('processed.mp3');
-            (splitAudioFile as Mock).mockResolvedValue(chunkFiles);
+            (splitFileOnSilences as Mock).mockResolvedValue(chunkFiles);
             (transcribeAudioChunks as Mock).mockResolvedValue([{ range: { end: 10, start: 0 }, text: 'Hello World' }]);
         });
 
@@ -42,8 +42,8 @@ describe('transcribe', () => {
             expect(formatMedia).toHaveBeenCalledWith(testFile, expect.any(String), undefined, undefined);
             expect(formatMedia).toHaveBeenCalledOnce();
 
-            expect(splitAudioFile).toHaveBeenCalledWith('processed.mp3', '', undefined, undefined);
-            expect(splitAudioFile).toHaveBeenCalledOnce();
+            expect(splitFileOnSilences).toHaveBeenCalledWith('processed.mp3', '', undefined, undefined);
+            expect(splitFileOnSilences).toHaveBeenCalledOnce();
 
             expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, undefined, undefined);
             expect(transcribeAudioChunks).toHaveBeenCalledOnce();
@@ -97,7 +97,7 @@ describe('transcribe', () => {
 
         it('should return an empty string there was no chunks generated', async () => {
             (formatMedia as Mock).mockResolvedValue('processed.mp3');
-            (splitAudioFile as Mock).mockResolvedValue([]);
+            (splitFileOnSilences as Mock).mockResolvedValue([]);
 
             const result = await transcribe('audio.mp3');
 

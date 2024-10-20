@@ -1,7 +1,8 @@
+import { AudioChunk } from 'ffmpeg-simplified';
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
-import { AudioChunk, Callbacks, Transcript, WitAiResponse } from './types.js';
+import { Callbacks, Transcript, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
 import { dictation } from './wit.ai.js';
 
