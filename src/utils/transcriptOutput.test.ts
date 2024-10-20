@@ -1,7 +1,6 @@
-import { promises as fs } from 'fs';
-import { afterEach } from 'node:test';
-import path from 'path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { Transcript } from '../types';
 import { createTempDir } from './io';
@@ -23,7 +22,11 @@ describe('transcriptOutput', () => {
             const transcripts: Transcript[] = [
                 { range: { end: 10, start: 0 }, text: 'A' },
                 { range: { end: 20, start: 10 }, text: 'B' },
-                { range: { end: 30, start: 20 }, text: 'C' },
+                {
+                    range: { end: 30, start: 20 },
+                    text: 'C',
+                    tokens: [{ confidence: 1, end: 25, start: 20, token: 'C0' }],
+                },
             ];
 
             const jsonFile = await writeTranscripts(transcripts, {
@@ -36,7 +39,7 @@ describe('transcriptOutput', () => {
             expect(data).toEqual([
                 { end: 10, start: 0, text: 'A' },
                 { end: 20, start: 10, text: 'B' },
-                { end: 30, start: 20, text: 'C' },
+                { end: 30, start: 20, text: 'C', tokens: [{ confidence: 1, end: 25, start: 20, token: 'C0' }] },
             ]);
         });
 
