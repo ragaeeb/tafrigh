@@ -1,3 +1,4 @@
+import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
@@ -6,7 +7,6 @@ import { setApiKeys } from './apiKeys.js';
 import { transcribeAudioChunks } from './transcriber.js';
 import { TafrighOptions, TranscribeFilesOptions } from './types.js';
 import { DEFAULT_OUTPUT_EXTENSION } from './utils/constants.js';
-import { formatMedia, splitAudioFile } from './utils/ffmpegUtils.js';
 import { createTempDir } from './utils/io.js';
 import logger from './utils/logger.js';
 import { writeTranscripts } from './utils/transcriptOutput.js';
@@ -23,7 +23,7 @@ export const transcribe = async (content: Readable | string, options?: Transcrib
     logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)} to ${outputDir}`);
 
     const filePath = await formatMedia(content, outputDir, options?.preprocessOptions, options?.callbacks);
-    const chunkFiles = await splitAudioFile(filePath, '', options?.splitOptions, options?.callbacks);
+    const chunkFiles = await splitFileOnSilences(filePath, '', options?.splitOptions, options?.callbacks);
     let outputFile = '';
 
     if (chunkFiles.length > 0) {

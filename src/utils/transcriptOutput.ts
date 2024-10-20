@@ -1,11 +1,11 @@
 import fs from 'fs/promises';
-import path from 'path';
+import path from 'node:path';
 
 import { OutputFormat, Transcript, TranscriptOutputOptions } from '../types.js';
 import logger from './logger.js';
 
 const mapTranscriptsToJSONString = (transcripts: Transcript[]): string => {
-    const flattened = transcripts.map(({ range, text }) => ({ ...range, text }));
+    const flattened = transcripts.map(({ range, ...rest }) => ({ ...range, ...rest }));
     return JSON.stringify(flattened, null, 2);
 };
 
