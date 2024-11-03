@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { describe, expect, it } from 'vitest';
 
 import { getNextApiKey } from '../src/apiKeys.js';
-import { transcribe } from '../src/index.js';
+import { getTranscription, transcribe } from '../src/index.js';
 import { MAX_CHUNK_DURATION } from '../src/utils/constants.js';
 import { speechToText } from '../src/wit.ai.js';
 
@@ -32,6 +32,20 @@ describe('e2e', () => {
                 const data = JSON.parse(await fs.readFile(outputFile, 'utf8'));
 
                 expect(data).toHaveLength(1);
+            },
+            { timeout: 20000 },
+        );
+    });
+
+    describe('getTranscription', () => {
+        it(
+            'should do a full transcription',
+            async () => {
+                const transcripts = await getTranscription('testing/khutbah.mp3', {
+                    splitOptions: { chunkDuration: MAX_CHUNK_DURATION },
+                });
+
+                expect(transcripts).toHaveLength(1);
             },
             { timeout: 20000 },
         );
