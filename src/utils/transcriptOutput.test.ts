@@ -43,6 +43,26 @@ describe('transcriptOutput', () => {
             ]);
         });
 
+        it('should write out a plain text file', async () => {
+            const transcripts: Transcript[] = [
+                { range: { end: 10, start: 0 }, text: 'A' },
+                { range: { end: 20, start: 10 }, text: 'B' },
+                {
+                    range: { end: 30, start: 20 },
+                    text: 'C',
+                    tokens: [{ confidence: 1, end: 25, start: 20, token: 'C0' }],
+                },
+            ];
+
+            const jsonFile = await writeTranscripts(transcripts, {
+                outputFile: path.join(outputDir, 'output.txt'),
+            });
+
+            const data = await fs.readFile(jsonFile, 'utf8');
+
+            expect(data).toEqual('A\nB\nC');
+        });
+
         it('should throw an error for an unsupported format', async () => {
             await expect(
                 writeTranscripts([], {

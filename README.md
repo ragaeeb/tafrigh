@@ -146,7 +146,7 @@ Adjust the level of logging output by setting the `LOG_LEVEL` environment variab
 
 #### Output
 
--   The transcription result is saved in `.json` format in the specified output directory.
+-   The transcription result is saved in `.json` format in the specified output directory or the `.txt` if that is specified.
 
 The JSON file is an array that looks like this with `start` specifying the time in seconds the `text` starts and `end` marking where it ends. Note that setting an appropriate `chunkDuration` will affect how many elements this produces and the granularity of the transcription:
 
@@ -156,6 +156,14 @@ The JSON file is an array that looks like this with `start` specifying the time 
     { "text": "B", "start": 10, "end": 20 },
     { "text": "C", "start": 20, "end": 30 }
 ]
+```
+
+-   If the output file is specified with a `.txt` extension, then it will save the file as a plain-text file.
+
+```text
+A
+B
+C
 ```
 
 ## Contributing

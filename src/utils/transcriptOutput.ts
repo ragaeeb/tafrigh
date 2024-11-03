@@ -9,8 +9,13 @@ const mapTranscriptsToJSONString = (transcripts: Transcript[]): string => {
     return JSON.stringify(flattened, null, 2);
 };
 
+const mapTranscriptsToPlainText = (transcripts: Transcript[]): string => {
+    return transcripts.map(({ text }) => text).join('\n');
+};
+
 const OutputFormatToHandler = {
     [OutputFormat.Json]: mapTranscriptsToJSONString,
+    [OutputFormat.PlainText]: mapTranscriptsToPlainText,
 };
 
 export const writeTranscripts = async (

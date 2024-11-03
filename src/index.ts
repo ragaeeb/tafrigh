@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 
 import { setApiKeys } from './apiKeys.js';
 import { transcribeAudioChunks } from './transcriber.js';
-import { TafrighOptions, TranscribeFilesOptions } from './types.js';
+import { GetTranscriptionOptions, TafrighOptions, TranscribeFilesOptions, Transcript } from './types.js';
 import { DEFAULT_OUTPUT_EXTENSION } from './utils/constants.js';
 import { createTempDir } from './utils/io.js';
 import logger from './utils/logger.js';
@@ -16,34 +16,66 @@ export const init = (options: TafrighOptions) => {
     setApiKeys(options.apiKeys);
 };
 
-export const transcribe = async (content: Readable | string, options?: TranscribeFilesOptions): Promise<string> => {
+const getTranscriptsFromInput = async (
+    content: Readable | string,
+    outputDir: string,
+    options?: GetTranscriptionOptions,
+) => {
     validateTranscribeFileOptions(options);
-
-    const outputDir = await createTempDir();
-    logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)} to ${outputDir}`);
 
     const filePath = await formatMedia(content, outputDir, options?.preprocessOptions, options?.callbacks);
     const chunkFiles = await splitFileOnSilences(filePath, '', options?.splitOptions, options?.callbacks);
-    let outputFile = '';
+    const transcripts = chunkFiles.length
+        ? await transcribeAudioChunks(chunkFiles, options?.concurrency, options?.callbacks)
+        : [];
 
-    if (chunkFiles.length > 0) {
-        logger.trace(chunkFiles, `Generated chunks`);
-        const transcripts = await transcribeAudioChunks(chunkFiles, options?.concurrency, options?.callbacks);
-        outputFile = await writeTranscripts(
-            transcripts,
-            options?.outputOptions || {
-                outputFile: path.join(outputDir, `${path.parse(filePath).name}.${DEFAULT_OUTPUT_EXTENSION}`),
-            },
-        );
+    logger.trace(chunkFiles, `Generated chunks`);
+    return { filePath, transcripts };
+};
 
-        logger.info(`Transcriptions written to: ${outputFile}`);
-    } else {
+export const transcribe = async (content: Readable | string, options?: TranscribeFilesOptions): Promise<string> => {
+    const outputDir = await createTempDir();
+
+    try {
+        logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)} to ${outputDir}`);
+
+        const { filePath, transcripts } = await getTranscriptsFromInput(content, outputDir, options);
+
+        if (transcripts.length > 0) {
+            const outputFile = await writeTranscripts(
+                transcripts,
+                options?.outputOptions || {
+                    outputFile: path.join(outputDir, `${path.parse(filePath).name}.${DEFAULT_OUTPUT_EXTENSION}`),
+                },
+            );
+
+            logger.info(`Transcriptions written to: ${outputFile}`);
+
+            return outputFile;
+        }
+
         logger.warn(`No chunks were created during the audio splitting process for ${filePath}`);
-    }
 
-    if (!options?.preventCleanup && options?.outputOptions) {
+        return '';
+    } finally {
+        if (!options?.preventCleanup && options?.outputOptions) {
+            await fs.rm(outputDir, { recursive: true });
+        }
+    }
+};
+
+export const getTranscription = async (
+    content: Readable | string,
+    options?: GetTranscriptionOptions,
+): Promise<Transcript[]> => {
+    const outputDir = await createTempDir();
+
+    try {
+        logger.info(`getTranscription ${content} (${typeof content}) using ${JSON.stringify(options)}`);
+        const { transcripts } = await getTranscriptsFromInput(content, outputDir, options);
+
+        return transcripts;
+    } finally {
         await fs.rm(outputDir, { recursive: true });
     }
-
-    return outputFile;
 };

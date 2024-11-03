@@ -34,6 +34,7 @@ export interface Callbacks extends SplitOnSilenceCallbacks, SplitOnSilenceCallba
 
 export enum OutputFormat {
     Json = 'json',
+    PlainText = 'txt',
 }
 
 export interface TranscriptOutputOptions {
@@ -41,13 +42,16 @@ export interface TranscriptOutputOptions {
     outputFile: string;
 }
 
-export interface TranscribeFilesOptions {
+export interface GetTranscriptionOptions {
     callbacks?: Callbacks;
     concurrency?: number;
-    outputOptions?: TranscriptOutputOptions;
     preprocessOptions?: PreprocessOptions;
-    preventCleanup?: boolean;
     splitOptions?: SplitOptions;
+}
+
+export interface TranscribeFilesOptions extends GetTranscriptionOptions {
+    outputOptions?: TranscriptOutputOptions;
+    preventCleanup?: boolean;
 }
 
 export interface TafrighOptions {
