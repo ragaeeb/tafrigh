@@ -18,11 +18,26 @@ const requestNextTranscript = async (
     }
 
     if (response.text?.trim()) {
+        // Adjust tokens if they exist
+        const adjustedTokens = response.tokens
+            ? response.tokens.map((token) => ({
+                  ...token,
+                  end: token.end / 1000 + chunk.range.start,
+                  start: token.start / 1000 + chunk.range.start,
+              }))
+            : [];
+
+        // Set the range using the adjusted tokens
+        const range = {
+            end: adjustedTokens.length > 0 ? adjustedTokens[adjustedTokens.length - 1].end : chunk.range.end,
+            start: adjustedTokens[0]?.start ?? chunk.range.start,
+        };
+
         return {
-            confidence: response.confidence,
-            range: chunk.range,
+            ...(response.confidence && { confidence: response.confidence }),
+            range,
             text: response.text.trim(),
-            tokens: response.tokens,
+            ...(adjustedTokens.length > 0 && { tokens: adjustedTokens }),
         };
     }
 

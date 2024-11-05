@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import type { AudioChunk } from 'ffmpeg-simplified';
+
+import { beforeEach, describe, expect, it, Mock, vi, vitest } from 'vitest';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys';
 import { transcribeAudioChunks } from './transcriber';
-import { AudioChunk } from './types';
 import { dictation } from './wit.ai';
 
 vi.mock('./wit.ai');
@@ -86,17 +87,24 @@ describe('transcriber', () => {
         });
 
         describe('concurrent threads', () => {
-            it('should transcribe multiple chunks in parallel with limited concurrency', async () => {
+            it('should transcribe multiple chunks in parallel with limited concurrency and adjust the start to reflect the tokens we get back', async () => {
                 mockChunkFiles = [
                     { filename: 'chunk1.mp3', range: { end: 10, start: 0 } },
                     { filename: 'chunk2.mp3', range: { end: 20, start: 10 } },
                     { filename: 'chunk3.mp3', range: { end: 30, start: 20 } },
                 ];
 
-                const fakeTranscript = (text: string) => ({ text });
-
-                (dictation as any).mockImplementation((filename) =>
-                    Promise.resolve(fakeTranscript(`Transcribed text for ${filename}`)),
+                (dictation as Mock).mockImplementation((filename) =>
+                    Promise.resolve({
+                        confidence: 1,
+                        text: `Transcribed text for ${filename}`,
+                        tokens: [
+                            { confidence: 0.5, end: 4500, start: 500, token: 'Transcribed' },
+                            { confidence: 0.5, end: 6500, start: 5500, token: 'text' },
+                            { confidence: 0.5, end: 8500, start: 7500, token: 'for' },
+                            { confidence: 0.5, end: 10500, start: 9500, token: filename },
+                        ],
+                    }),
                 );
 
                 (getNextApiKey as any).mockImplementation(() => apiKey);
@@ -110,10 +118,41 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(mockChunkFiles, 2, callbacks);
 
-                expect(result).toHaveLength(3);
-                expect(result[0].text).toBe('Transcribed text for chunk1.mp3');
-                expect(result[1].text).toBe('Transcribed text for chunk2.mp3');
-                expect(result[2].text).toBe('Transcribed text for chunk3.mp3');
+                expect(result).toEqual([
+                    {
+                        confidence: 1,
+                        range: { end: 10.5, start: 0.5 },
+                        text: 'Transcribed text for chunk1.mp3',
+                        tokens: [
+                            { confidence: 0.5, end: 4.5, start: 0.5, token: 'Transcribed' },
+                            { confidence: 0.5, end: 6.5, start: 5.5, token: 'text' },
+                            { confidence: 0.5, end: 8.5, start: 7.5, token: 'for' },
+                            { confidence: 0.5, end: 10.5, start: 9.5, token: 'chunk1.mp3' },
+                        ],
+                    },
+                    {
+                        confidence: 1,
+                        range: { end: 20.5, start: 10.5 },
+                        text: 'Transcribed text for chunk2.mp3',
+                        tokens: [
+                            { confidence: 0.5, end: 14.5, start: 10.5, token: 'Transcribed' },
+                            { confidence: 0.5, end: 16.5, start: 15.5, token: 'text' },
+                            { confidence: 0.5, end: 18.5, start: 17.5, token: 'for' },
+                            { confidence: 0.5, end: 20.5, start: 19.5, token: 'chunk2.mp3' },
+                        ],
+                    },
+                    {
+                        confidence: 1,
+                        range: { end: 30.5, start: 20.5 },
+                        text: 'Transcribed text for chunk3.mp3',
+                        tokens: [
+                            { confidence: 0.5, end: 24.5, start: 20.5, token: 'Transcribed' },
+                            { confidence: 0.5, end: 26.5, start: 25.5, token: 'text' },
+                            { confidence: 0.5, end: 28.5, start: 27.5, token: 'for' },
+                            { confidence: 0.5, end: 30.5, start: 29.5, token: 'chunk3.mp3' },
+                        ],
+                    },
+                ]);
 
                 // Ensure that dictation was called with each chunk filename
                 expect(dictation).toHaveBeenCalledWith('chunk1.mp3', { apiKey });
@@ -138,10 +177,8 @@ describe('transcriber', () => {
                     { filename: 'chunk2.mp3', range: { end: 20, start: 10 } },
                 ];
 
-                const fakeTranscript = (text: string) => ({ text });
-
-                (dictation as any).mockImplementation((filename) =>
-                    Promise.resolve(fakeTranscript(`Transcribed text for ${filename}`)),
+                (dictation as Mock).mockImplementation((filename) =>
+                    Promise.resolve({ text: `Transcribed text for ${filename}` }),
                 );
 
                 (getNextApiKey as any).mockImplementation(() => apiKey);
