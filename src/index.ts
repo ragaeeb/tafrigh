@@ -79,3 +79,5 @@ export const getTranscription = async (
         await fs.rm(outputDir, { recursive: true });
     }
 };
+
+export * from './types.js';
