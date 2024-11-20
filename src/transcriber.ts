@@ -4,6 +4,7 @@ import PQueue from 'p-queue';
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
 import { Callbacks, Transcript, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
+import { exponentialBackoffRetry } from './utils/retry.js';
 import { dictation } from './wit.ai.js';
 
 const requestNextTranscript = async (
@@ -11,7 +12,9 @@ const requestNextTranscript = async (
     index: number,
     callbacks?: Callbacks,
 ): Promise<null | Transcript> => {
-    const response: WitAiResponse = await dictation(chunk.filename, { apiKey: getNextApiKey() });
+    const response: WitAiResponse = await exponentialBackoffRetry(() =>
+        dictation(chunk.filename, { apiKey: getNextApiKey() }),
+    );
 
     if (callbacks?.onTranscriptionProgress) {
         callbacks.onTranscriptionProgress(index);

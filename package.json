@@ -1,6 +1,6 @@
 {
     "name": "tafrigh",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "A NodeJS library for transcribing audio/video to text.",
     "main": "dist/main.js",
     "types": "dist/index.d.ts",
@@ -37,29 +37,29 @@
     "author": "Ragaeeb Haq",
     "license": "MIT",
     "devDependencies": {
-        "@eslint/js": "^9.14.0",
-        "@parcel/packager-ts": "^2.12.0",
-        "@parcel/transformer-typescript-types": "^2.12.0",
+        "@eslint/js": "^9.15.0",
+        "@parcel/packager-ts": "^2.13.0",
+        "@parcel/transformer-typescript-types": "^2.13.0",
         "@semantic-release/changelog": "^6.0.3",
         "@types/eslint__js": "^8.42.3",
         "@types/fluent-ffmpeg": "^2.1.27",
         "@types/jsonstream-next": "^3.0.3",
-        "@types/node": "^22.9.0",
-        "@vitest/coverage-v8": "^2.1.4",
+        "@types/node": "^22.9.1",
+        "@vitest/coverage-v8": "^2.1.5",
         "dotenv-vault": "^1.26.2",
-        "eslint": "^9.14.0",
+        "eslint": "^9.15.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-import": "^2.31.0",
-        "eslint-plugin-perfectionist": "^3.9.1",
+        "eslint-plugin-perfectionist": "^4.0.3",
         "eslint-plugin-prettier": "^5.2.1",
         "eslint-plugin-vitest": "^0.5.4",
         "eslint-plugin-vitest-globals": "^1.5.0",
-        "parcel": "^2.12.0",
+        "parcel": "^2.13.0",
         "prettier": "^3.3.3",
         "semantic-release": "^24.2.0",
         "typescript": "^5.6.3",
-        "typescript-eslint": "^8.13.0",
-        "vitest": "^2.1.4"
+        "typescript-eslint": "^8.15.0",
+        "vitest": "^2.1.5"
     },
-    "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228"
+    "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
 }
