@@ -5,7 +5,7 @@
 [![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml) ![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh)
 ![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/tafrigh)
 [![codecov](https://codecov.io/github/ragaeeb/tafrigh/graph/badge.svg?token=9DWYN1ETDS)](https://codecov.io/github/ragaeeb/tafrigh)
-[![Size](https://deno.bundlejs.com/badge?q=tafrigh@2.0.1&badge=detailed)](https://bundlejs.com/?q=tafrigh%402.0.1)
+[![Size](https://deno.bundlejs.com/badge?q=tafrigh@2.1.2&badge=detailed)](https://bundlejs.com/?q=tafrigh%402.1.2)
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue)
 ![npm](https://img.shields.io/npm/dm/tafrigh)
 ![GitHub issues](https://img.shields.io/github/issues/ragaeeb/tafrigh)
