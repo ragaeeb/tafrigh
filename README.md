@@ -1,6 +1,15 @@
 # tafrigh
 
-[![wakatime](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be.svg)](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be) [![E2E](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml) [![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml) ![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh) ![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/tafrigh) [![codecov](https://codecov.io/github/ragaeeb/tafrigh/graph/badge.svg?token=9DWYN1ETDS)](https://codecov.io/github/ragaeeb/tafrigh) [![Size](https://deno.bundlejs.com/badge?q=tafrigh@2.0.0&badge=detailed)](https://bundlejs.com/?q=tafrigh%402.0.0) ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue) ![npm](https://img.shields.io/npm/dm/tafrigh) ![GitHub issues](https://img.shields.io/github/issues/ragaeeb/tafrigh) ![GitHub stars](https://img.shields.io/github/stars/ragaeeb/tafrigh?style=social)
+[![wakatime](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be.svg)](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be)
+[![E2E](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml)
+[![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml) ![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh)
+![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/tafrigh)
+[![codecov](https://codecov.io/github/ragaeeb/tafrigh/graph/badge.svg?token=9DWYN1ETDS)](https://codecov.io/github/ragaeeb/tafrigh)
+[![Size](https://deno.bundlejs.com/badge?q=tafrigh@2.0.1&badge=detailed)](https://bundlejs.com/?q=tafrigh%402.0.1)
+![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue)
+![npm](https://img.shields.io/npm/dm/tafrigh)
+![GitHub issues](https://img.shields.io/github/issues/ragaeeb/tafrigh)
+![GitHub stars](https://img.shields.io/github/stars/ragaeeb/tafrigh?style=social)
 
 `tafrigh` is a NodeJS audio processing library that simplifies the process of transcribing audio files using external APIs like `wit.ai`. The library includes built-in support for splitting audio into chunks, noise reduction, and managing multiple API keys to optimize transcription workflows for larger files.
 
@@ -177,3 +186,5 @@ Contributions are welcome! Please make sure your contributions adhere to the cod
 ## Acknowledgements
 
 This project was inspired by the Python-based [Tafrigh project](https://github.com/ieasybooks/tafrigh), with additional improvements for audio chunking, noise reduction, and concurrency management.
+
+Also check out [tafrigh-cli](https://github.com/ragaeeb/tafrigh-cli), for a CLI version of this library.
