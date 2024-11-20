@@ -1,6 +1,6 @@
 {
     "name": "tafrigh",
-    "version": "2.0.1",
+    "version": "2.1.2",
     "description": "A NodeJS library for transcribing audio/video to text.",
     "main": "dist/main.js",
     "types": "dist/index.d.ts",
