@@ -41,7 +41,7 @@ describe('transcriber', () => {
                     onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
                 };
 
-                const result = await transcribeAudioChunks(mockChunkFiles, 1, callbacks);
+                const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, concurrency: 1 });
 
                 expect(result).toEqual([
                     { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
@@ -66,7 +66,7 @@ describe('transcriber', () => {
                     .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
                     .mockResolvedValueOnce({ text: undefined });
 
-                const result = await transcribeAudioChunks(mockChunkFiles, 1);
+                const result = await transcribeAudioChunks(mockChunkFiles, { concurrency: 1 });
 
                 expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
             });
@@ -74,7 +74,7 @@ describe('transcriber', () => {
             it('should return an empty array if all transcriptions fail', async () => {
                 (dictation as any).mockRejectedValue(new Error('Network error'));
 
-                await expect(transcribeAudioChunks(mockChunkFiles, 1)).rejects.toThrow('Network error');
+                await expect(transcribeAudioChunks(mockChunkFiles, { retries: 1 })).rejects.toThrow('Network error');
             });
         });
 
@@ -108,7 +108,7 @@ describe('transcriber', () => {
                     onTranscriptionStarted: vitest.fn().mockResolvedValue(null),
                 };
 
-                const result = await transcribeAudioChunks(mockChunkFiles, 2, callbacks);
+                const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, concurrency: 2 });
 
                 expect(result).toEqual([
                     {
@@ -175,9 +175,8 @@ describe('transcriber', () => {
 
                 (getNextApiKey as any).mockImplementation(() => apiKey);
                 (getApiKeysCount as any).mockReturnValue(10); // Simulate 10 available API keys
-                const concurrencyLimit = 2;
 
-                const result = await transcribeAudioChunks(chunkFiles, concurrencyLimit);
+                const result = await transcribeAudioChunks(chunkFiles, { concurrency: 2 });
 
                 expect(result).toHaveLength(2);
                 expect(result[0].text).toBe('Transcribed text for chunk1.mp3');
