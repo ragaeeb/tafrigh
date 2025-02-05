@@ -2,7 +2,7 @@ import { setTimeout } from 'node:timers/promises';
 
 import logger from './logger.js';
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
 
 export const exponentialBackoffRetry = async <T>(

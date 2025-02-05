@@ -6,6 +6,30 @@ import {
     TimeRange,
 } from 'ffmpeg-simplified';
 
+export enum OutputFormat {
+    Json = 'json',
+    PlainText = 'txt',
+}
+
+export interface Callbacks extends PreprocessingCallbacks, SplitOnSilenceCallbacks, SplitOnSilenceCallbacks {
+    onTranscriptionFinished?: (transcripts: Transcript[]) => Promise<void>;
+    onTranscriptionProgress?: (chunkIndex: number) => void;
+    onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
+}
+
+export interface GetTranscriptionOptions {
+    callbacks?: Callbacks;
+    concurrency?: number;
+    lineBreakSecondsThreshold?: number;
+    preprocessOptions?: PreprocessOptions;
+    retries?: number;
+    splitOptions?: SplitOptions;
+}
+
+export interface TafrighOptions {
+    apiKeys: string[];
+}
+
 export interface Token {
     confidence: number;
     end: number;
@@ -13,10 +37,8 @@ export interface Token {
     token: string;
 }
 
-export interface WitAiResponse {
-    confidence?: number;
-    text?: string;
-    tokens?: Token[];
+export interface TranscribeFilesOptions extends GetTranscriptionOptions {
+    outputOptions: TranscriptOutputOptions;
 }
 
 export interface Transcript {
@@ -26,34 +48,13 @@ export interface Transcript {
     tokens?: Token[];
 }
 
-export interface Callbacks extends SplitOnSilenceCallbacks, SplitOnSilenceCallbacks, PreprocessingCallbacks {
-    onTranscriptionFinished?: (transcripts: Transcript[]) => Promise<void>;
-    onTranscriptionProgress?: (chunkIndex: number) => void;
-    onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
-}
-
-export enum OutputFormat {
-    Json = 'json',
-    PlainText = 'txt',
-}
-
 export interface TranscriptOutputOptions {
     includeTokens?: boolean;
     outputFile: string;
 }
 
-export interface GetTranscriptionOptions {
-    callbacks?: Callbacks;
-    concurrency?: number;
-    preprocessOptions?: PreprocessOptions;
-    splitOptions?: SplitOptions;
-}
-
-export interface TranscribeFilesOptions extends GetTranscriptionOptions {
-    outputOptions?: TranscriptOutputOptions;
-    preventCleanup?: boolean;
-}
-
-export interface TafrighOptions {
-    apiKeys: string[];
+export interface WitAiResponse {
+    confidence?: number;
+    text?: string;
+    tokens?: Token[];
 }

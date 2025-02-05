@@ -1,5 +1,7 @@
+import { createTempDir } from 'ffmpeg-simplified';
 import { promises as fs } from 'fs';
-import { describe, expect, it } from 'vitest';
+import path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { getNextApiKey } from '../src/apiKeys.js';
 import { getTranscription, transcribe } from '../src/index.js';
@@ -7,6 +9,16 @@ import { MAX_CHUNK_DURATION } from '../src/utils/constants.js';
 import { speechToText } from '../src/wit.ai.js';
 
 describe('e2e', () => {
+    let outputDir;
+
+    beforeAll(async () => {
+        outputDir = await createTempDir('tafrigh');
+    });
+
+    afterAll(async () => {
+        await fs.rm(outputDir, { recursive: true });
+    });
+
     describe('speechToText', () => {
         it(
             'should call the Wit.ai API with the correct parameters and return the text',
@@ -26,6 +38,7 @@ describe('e2e', () => {
             'should do a full transcription',
             async () => {
                 const outputFile = await transcribe('testing/khutbah.mp3', {
+                    outputOptions: { outputFile: path.join(outputDir, 'khutbah.json') },
                     splitOptions: { chunkDuration: MAX_CHUNK_DURATION },
                 });
 
