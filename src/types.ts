@@ -1,4 +1,4 @@
-import {
+import type {
     PreprocessingCallbacks,
     PreprocessOptions,
     SplitOnSilenceCallbacks,
@@ -6,55 +6,37 @@ import {
     TimeRange,
 } from 'ffmpeg-simplified';
 
-export enum OutputFormat {
-    Json = 'json',
-    PlainText = 'txt',
-}
-
 export interface Callbacks extends PreprocessingCallbacks, SplitOnSilenceCallbacks, SplitOnSilenceCallbacks {
-    onTranscriptionFinished?: (transcripts: Transcript[]) => Promise<void>;
+    onTranscriptionFinished?: (transcripts: Segment[]) => Promise<void>;
     onTranscriptionProgress?: (chunkIndex: number) => void;
     onTranscriptionStarted?: (totalChunks: number) => Promise<void>;
 }
 
-export interface GetTranscriptionOptions {
+export type Segment = Token & {
+    tokens?: Token[];
+};
+
+export type Token = TimeRange & {
+    confidence?: number;
+    text: string;
+};
+
+export type TranscribeOptions = {
     callbacks?: Callbacks;
     concurrency?: number;
-    lineBreakSecondsThreshold?: number;
     preprocessOptions?: PreprocessOptions;
+    preventCleanup?: boolean;
     retries?: number;
     splitOptions?: SplitOptions;
-}
+};
 
-export interface TafrighOptions {
-    apiKeys: string[];
-}
-
-export interface Token {
-    confidence: number;
-    end: number;
-    start: number;
-    token: string;
-}
-
-export interface TranscribeFilesOptions extends GetTranscriptionOptions {
-    outputOptions: TranscriptOutputOptions;
-}
-
-export interface Transcript {
-    confidence?: number;
-    range: TimeRange;
-    text: string;
-    tokens?: Token[];
-}
-
-export interface TranscriptOutputOptions {
-    includeTokens?: boolean;
-    outputFile: string;
-}
-
-export interface WitAiResponse {
+export type WitAiResponse = {
     confidence?: number;
     text?: string;
-    tokens?: Token[];
-}
+    tokens?: WitAiToken[];
+};
+
+type WitAiToken = TimeRange & {
+    confidence?: number;
+    token: string;
+};

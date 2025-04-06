@@ -1,9 +1,9 @@
-import fs from 'fs';
-import https from 'https';
 import JSONStream from 'jsonstream-next';
-import { URL } from 'url';
+import fs from 'node:fs';
+import https from 'node:https';
+import { URL } from 'node:url';
 
-import { WitAiResponse } from './types.js';
+import type { WitAiResponse } from './types.js';
 
 interface SpeechToTextOptions {
     apiKey: string;

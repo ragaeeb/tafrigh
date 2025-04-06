@@ -2,10 +2,10 @@ import { AudioChunk } from 'ffmpeg-simplified';
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
-import { Callbacks, Transcript, WitAiResponse } from './types.js';
+import { Callbacks, Segment, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
+import { mapWitResponseToSegment } from './utils/mapping.js';
 import { exponentialBackoffRetry } from './utils/retry.js';
-import { mapWitResponseToTranscript } from './utils/transcriptOutput.js';
 import { dictation } from './wit.ai.js';
 
 const requestNextTranscript = async (
@@ -13,7 +13,7 @@ const requestNextTranscript = async (
     index: number,
     callbacks?: Callbacks,
     retries?: number,
-): Promise<null | Transcript> => {
+): Promise<null | Segment> => {
     const response: WitAiResponse = await exponentialBackoffRetry(
         () => dictation(chunk.filename, { apiKey: getNextApiKey() }),
         retries,
@@ -24,7 +24,7 @@ const requestNextTranscript = async (
     }
 
     if (response.text?.trim()) {
-        return mapWitResponseToTranscript(response, chunk.range);
+        return mapWitResponseToSegment(response, chunk.range);
     }
 
     return null;
@@ -34,8 +34,8 @@ const transcribeAudioChunksInSingleThread = async (
     chunkFiles: AudioChunk[],
     callbacks?: Callbacks,
     retries?: number,
-): Promise<Transcript[]> => {
-    const transcripts: Transcript[] = [];
+): Promise<Segment[]> => {
+    const transcripts: Segment[] = [];
 
     logger.debug(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
 
@@ -62,10 +62,10 @@ const transcribeAudioChunksWithConcurrency = async (
     concurrency: number,
     callbacks?: Callbacks,
     retries?: number,
-): Promise<Transcript[]> => {
+): Promise<Segment[]> => {
     logger.debug(`transcribeAudioChunksWithConcurrency ${concurrency}`);
 
-    const transcripts: Transcript[] = [];
+    const transcripts: Segment[] = [];
     const queue = new PQueue({ concurrency });
 
     const processChunk = async (index: number, chunk: AudioChunk) => {
@@ -86,7 +86,7 @@ const transcribeAudioChunksWithConcurrency = async (
     await queue.onIdle(); // Wait until all tasks in the queue are processed
 
     // Sort transcripts by their original order based on range to maintain chunk order
-    transcripts.sort((a: Transcript, b: Transcript) => a.range.start - b.range.start);
+    transcripts.sort((a: Segment, b: Segment) => a.start - b.start);
 
     if (callbacks?.onTranscriptionFinished) {
         await callbacks.onTranscriptionFinished(transcripts);
@@ -100,7 +100,7 @@ type TranscribeAudioChunksOptions = { callbacks?: Callbacks; concurrency?: numbe
 export const transcribeAudioChunks = async (
     chunkFiles: AudioChunk[],
     { callbacks, concurrency = 1, retries }: TranscribeAudioChunksOptions = {},
-): Promise<Transcript[]> => {
+): Promise<Segment[]> => {
     const apiKeyCount = getApiKeysCount();
     const maxConcurrency = concurrency && concurrency <= apiKeyCount ? concurrency : apiKeyCount;
 

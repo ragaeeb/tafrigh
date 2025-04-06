@@ -1,15 +1,17 @@
 # tafrigh
 
 [![wakatime](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be.svg)](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be)
+![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)
 [![E2E](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml)
 [![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml) ![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh)
 ![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/tafrigh)
 [![codecov](https://codecov.io/github/ragaeeb/tafrigh/graph/badge.svg?token=9DWYN1ETDS)](https://codecov.io/github/ragaeeb/tafrigh)
-[![Size](https://deno.bundlejs.com/badge?q=tafrigh@3.0.0&badge=detailed)](https://bundlejs.com/?q=tafrigh%403.0.0)
+[![Size](https://deno.bundlejs.com/badge?q=tafrigh@4.0.0&badge=detailed)](https://bundlejs.com/?q=tafrigh%404.0.0)
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue)
 ![npm](https://img.shields.io/npm/dm/tafrigh)
 ![GitHub issues](https://img.shields.io/github/issues/ragaeeb/tafrigh)
 ![GitHub stars](https://img.shields.io/github/stars/ragaeeb/tafrigh?style=social)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/ragaeeb/tafrigh?utm_source=oss&utm_medium=github&utm_campaign=ragaeeb%2Ftafrigh&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 `tafrigh` is a NodeJS audio processing library that simplifies the process of transcribing audio files using external APIs like `wit.ai`. The library includes built-in support for splitting audio into chunks, noise reduction, and managing multiple API keys to optimize transcription workflows for larger files.
 
@@ -65,7 +67,6 @@ init({ apiKeys: ['wit-ai-key1', 'wit-ai-key2', 'wit-ai-key3'] });
 
 const options = {
     concurrency: 5 // have at most 5 parallel worker threads doing the transcription
-    outputOptions: { outputFile: 'path/to/output.json' },
     splitOptions: {
         chunkDuration: 60, // Split audio into 60-second chunks
         chunkMinThreshold: 4,
@@ -103,7 +104,7 @@ console.log(outputPath); // path/to/output.json
 
 ## API Documentation
 
-### `init(options: TafrighOptions)`
+### `init(options)`
 
 - **options**: Global options applicable to the tafrigh library.
     - **apiKeys**: An array of `wit.ai` API keys that tafrigh will cycle through to prevent hitting rate limits. The more keys you provide the more concurrent processing it can support to speed up the total time.

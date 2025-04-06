@@ -1,20 +1,19 @@
 {
     "name": "tafrigh",
-    "version": "3.0.0",
+    "version": "4.0.0",
     "description": "A NodeJS library for transcribing audio/video to text.",
-    "main": "dist/main.js",
+    "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "source": "src/index.ts",
     "type": "module",
     "scripts": {
-        "build": "parcel build",
+        "build": "tsup",
         "test": "vitest run --coverage",
-        "e2e": "node --env-file .env $(which pnpm) exec vitest run --coverage --config vitest.e2e.config.ts",
-        "test:e2e:ci": "pnpm exec vitest --config vitest.e2e.config.ts --run"
+        "e2e": "bun test testing/e2e.test.ts"
     },
     "files": [
-        "dist/main.js",
-        "dist/main.js.map",
+        "dist/index.js",
+        "dist/index.js.map",
         "dist/*.d.ts"
     ],
     "dependencies": {
@@ -25,7 +24,8 @@
         "pino": "^9.6.0"
     },
     "engines": {
-        "node": ">=20.0.0"
+        "bun": ">=1.2.8",
+        "node": ">=23.0.0"
     },
     "keywords": [
         "transcription",
@@ -37,28 +37,20 @@
     "author": "Ragaeeb Haq",
     "license": "MIT",
     "devDependencies": {
-        "@eslint/js": "^9.19.0",
-        "@parcel/packager-ts": "^2.13.3",
-        "@parcel/transformer-typescript-types": "^2.13.3",
-        "@semantic-release/changelog": "^6.0.3",
-        "@types/eslint__js": "^8.42.3",
-        "@types/fluent-ffmpeg": "^2.1.27",
+        "@eslint/js": "^9.24.0",
         "@types/jsonstream-next": "^3.0.3",
-        "@types/node": "^22.13.1",
-        "@vitest/coverage-v8": "^3.0.5",
-        "dotenv-vault": "^1.26.2",
-        "eslint": "^9.19.0",
-        "eslint-config-prettier": "^10.0.1",
-        "eslint-plugin-import": "^2.31.0",
-        "eslint-plugin-perfectionist": "^4.8.0",
-        "eslint-plugin-prettier": "^5.2.3",
-        "eslint-plugin-vitest": "^0.5.4",
-        "eslint-plugin-vitest-globals": "^1.5.0",
-        "parcel": "^2.13.3",
-        "prettier": "^3.4.2",
-        "semantic-release": "^24.2.1",
-        "typescript": "^5.7.3",
-        "typescript-eslint": "^8.23.0",
-        "vitest": "^3.0.5"
+        "@types/node": "^22.14.0",
+        "@vitest/coverage-v8": "^3.1.1",
+        "@vitest/eslint-plugin": "^1.1.39",
+        "eslint": "^9.24.0",
+        "eslint-config-prettier": "^10.1.1",
+        "eslint-plugin-perfectionist": "^4.11.0",
+        "eslint-plugin-prettier": "^5.2.6",
+        "globals": "^16.0.0",
+        "prettier": "^3.5.3",
+        "semantic-release": "^24.2.3",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.29.0",
+        "vitest": "^3.1.1"
     }
 }

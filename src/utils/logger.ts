@@ -1,4 +1,4 @@
-import pino, { Logger } from 'pino';
+import pino, { type Logger } from 'pino';
 import process from 'process';
 
 const logger: Logger = pino({

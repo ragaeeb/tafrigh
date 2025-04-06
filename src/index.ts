@@ -1,89 +1,74 @@
-import { createTempDir, fileExists, formatMedia, splitFileOnSilences, stringToHash } from 'ffmpeg-simplified';
-import { randomUUID } from 'node:crypto';
+import type { Readable } from 'node:stream';
+
+import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
+import process from 'node:process';
+
+import type { TranscribeOptions } from './types.js';
 
 import { setApiKeys } from './apiKeys.js';
 import { transcribeAudioChunks } from './transcriber.js';
-import { GetTranscriptionOptions, OutputFormat, TafrighOptions, TranscribeFilesOptions, Transcript } from './types.js';
 import logger from './utils/logger.js';
-import { formatTranscriptsWithLineBreaks, writeTranscripts } from './utils/transcriptOutput.js';
 import { validateTranscribeFileOptions } from './utils/validation.js';
 
-export const init = (options: TafrighOptions) => {
+export const init = (options: { apiKeys: string[] }) => {
     setApiKeys(options.apiKeys);
 };
 
-const getTranscriptsFromInput = async (content: Readable | string, options: TranscribeFilesOptions) => {
+export const transcribe = async (content: Readable | string, options?: TranscribeOptions) => {
+    logger.info(options, `transcribe ${content} (${typeof content})`);
+
     validateTranscribeFileOptions(options);
 
-    const { dir: outputDir } = path.parse(options.outputOptions.outputFile);
-    let filePath = path.format({
-        dir: outputDir,
-        ext: '.mp3',
-        name: stringToHash(options.outputOptions.outputFile),
-    });
+    const outputDir = await fs.mkdtemp('tafrigh');
+    logger.debug(`Using ${outputDir}`);
 
-    if (!(await fileExists(filePath))) {
-        filePath = await formatMedia(content, filePath, options?.preprocessOptions, options?.callbacks);
-    }
-
-    const chunkFiles = await splitFileOnSilences(filePath, outputDir, options.splitOptions, options.callbacks);
-    const transcripts = chunkFiles.length
-        ? await transcribeAudioChunks(chunkFiles, {
-              callbacks: options.callbacks,
-              concurrency: options.concurrency,
-              retries: options.retries,
-          })
-        : [];
-
-    logger.trace(chunkFiles, `Generated chunks`);
-    return {
-        filePath,
-        transcripts: options.lineBreakSecondsThreshold
-            ? formatTranscriptsWithLineBreaks(transcripts, options.lineBreakSecondsThreshold)
-            : transcripts,
+    const cleanUp = async () => {
+        if (!options?.preventCleanup) {
+            logger.info(`Cleaning up ${outputDir}`);
+            await fs.rm(outputDir, { recursive: true });
+        }
     };
-};
 
-export const transcribe = async (content: Readable | string, options: TranscribeFilesOptions): Promise<string> => {
-    logger.info(`transcribe ${content} (${typeof content}) using ${JSON.stringify(options)}`);
+    const cleanUpAndExit = async () => {
+        await cleanUp();
+        process.exit(0);
+    };
 
-    const { filePath, transcripts } = await getTranscriptsFromInput(content, options);
-
-    if (transcripts.length > 0) {
-        const outputFile = await writeTranscripts(transcripts, options.outputOptions);
-
-        logger.info(`Transcriptions written to: ${outputFile}`);
-
-        return outputFile;
-    }
-
-    logger.warn(`No chunks were created during the audio splitting process for ${filePath}`);
-
-    return '';
-};
-
-export const getTranscription = async (
-    content: Readable | string,
-    options?: GetTranscriptionOptions,
-): Promise<Transcript[]> => {
-    logger.info(`getTranscription ${content} (${typeof content}) using ${JSON.stringify(options)}`);
-    const outputDir = await createTempDir('tafrigh');
-
-    const outputFile = path.format({
-        dir: outputDir,
-        ext: `.${OutputFormat.PlainText}`,
-        name: typeof content === 'string' ? stringToHash(content) : randomUUID(),
-    });
+    process.on('SIGINT', cleanUpAndExit);
+    process.on('SIGTERM', cleanUpAndExit);
 
     try {
-        const { transcripts } = await getTranscriptsFromInput(content, { ...options, outputOptions: { outputFile } });
-        return transcripts;
+        const filePath = await formatMedia(
+            content,
+            path.format({
+                dir: outputDir,
+                ext: '.mp3',
+                name: Date.now().toString(),
+            }),
+            options?.preprocessOptions,
+            options?.callbacks,
+        );
+        const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
+        const transcript = chunkFiles.length
+            ? await transcribeAudioChunks(chunkFiles, {
+                  callbacks: options?.callbacks,
+                  concurrency: options?.concurrency,
+                  retries: options?.retries,
+              })
+            : [];
+
+        logger.debug(chunkFiles, `Generated chunks`);
+
+        return transcript;
     } finally {
-        await fs.rm(outputDir, { recursive: true });
+        process.off('SIGINT', cleanUpAndExit);
+        process.off('SIGTERM', cleanUpAndExit);
+
+        await cleanUp();
     }
 };
 
 export * from './types.js';
+export * from './utils/constants.js';

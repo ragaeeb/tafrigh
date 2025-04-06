@@ -44,8 +44,8 @@ describe('transcriber', () => {
                 const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, concurrency: 1 });
 
                 expect(result).toEqual([
-                    { range: mockChunkFiles[0].range, text: 'Transcript for chunk1' },
-                    { range: mockChunkFiles[1].range, text: 'Transcript for chunk2' },
+                    { ...mockChunkFiles[0].range, text: 'Transcript for chunk1' },
+                    { ...mockChunkFiles[1].range, text: 'Transcript for chunk2' },
                 ]);
                 expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey });
@@ -68,7 +68,7 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(mockChunkFiles, { concurrency: 1 });
 
-                expect(result).toEqual([{ range: mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
+                expect(result).toEqual([{ ...mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
             });
 
             it('should return an empty array if all transcriptions fail', async () => {
@@ -113,35 +113,38 @@ describe('transcriber', () => {
                 expect(result).toEqual([
                     {
                         confidence: 1,
-                        range: { end: 10.5, start: 0.5 },
+                        end: 10.5,
+                        start: 0.5,
                         text: 'Transcribed text for chunk1.mp3',
                         tokens: [
-                            { confidence: 0.5, end: 4.5, start: 0.5, token: 'Transcribed' },
-                            { confidence: 0.5, end: 6.5, start: 5.5, token: 'text' },
-                            { confidence: 0.5, end: 8.5, start: 7.5, token: 'for' },
-                            { confidence: 0.5, end: 10.5, start: 9.5, token: 'chunk1.mp3' },
+                            { confidence: 0.5, end: 4.5, start: 0.5, text: 'Transcribed' },
+                            { confidence: 0.5, end: 6.5, start: 5.5, text: 'text' },
+                            { confidence: 0.5, end: 8.5, start: 7.5, text: 'for' },
+                            { confidence: 0.5, end: 10.5, start: 9.5, text: 'chunk1.mp3' },
                         ],
                     },
                     {
                         confidence: 1,
-                        range: { end: 20.5, start: 10.5 },
+                        end: 20.5,
+                        start: 10.5,
                         text: 'Transcribed text for chunk2.mp3',
                         tokens: [
-                            { confidence: 0.5, end: 14.5, start: 10.5, token: 'Transcribed' },
-                            { confidence: 0.5, end: 16.5, start: 15.5, token: 'text' },
-                            { confidence: 0.5, end: 18.5, start: 17.5, token: 'for' },
-                            { confidence: 0.5, end: 20.5, start: 19.5, token: 'chunk2.mp3' },
+                            { confidence: 0.5, end: 14.5, start: 10.5, text: 'Transcribed' },
+                            { confidence: 0.5, end: 16.5, start: 15.5, text: 'text' },
+                            { confidence: 0.5, end: 18.5, start: 17.5, text: 'for' },
+                            { confidence: 0.5, end: 20.5, start: 19.5, text: 'chunk2.mp3' },
                         ],
                     },
                     {
                         confidence: 1,
-                        range: { end: 30.5, start: 20.5 },
+                        end: 30.5,
+                        start: 20.5,
                         text: 'Transcribed text for chunk3.mp3',
                         tokens: [
-                            { confidence: 0.5, end: 24.5, start: 20.5, token: 'Transcribed' },
-                            { confidence: 0.5, end: 26.5, start: 25.5, token: 'text' },
-                            { confidence: 0.5, end: 28.5, start: 27.5, token: 'for' },
-                            { confidence: 0.5, end: 30.5, start: 29.5, token: 'chunk3.mp3' },
+                            { confidence: 0.5, end: 24.5, start: 20.5, text: 'Transcribed' },
+                            { confidence: 0.5, end: 26.5, start: 25.5, text: 'text' },
+                            { confidence: 0.5, end: 28.5, start: 27.5, text: 'for' },
+                            { confidence: 0.5, end: 30.5, start: 29.5, text: 'chunk3.mp3' },
                         ],
                     },
                 ]);
