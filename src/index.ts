@@ -12,10 +12,44 @@ import { transcribeAudioChunks } from './transcriber.js';
 import logger from './utils/logger.js';
 import { validateTranscribeFileOptions } from './utils/validation.js';
 
+/**
+ * Initializes the tafrigh library with the provided Wit.ai API keys.
+ *
+ * @param {Object} options - Configuration options for initialization
+ * @param {string[]} options.apiKeys - Array of Wit.ai API keys to use for transcription
+ * @example
+ * import { init } from 'tafrigh';
+ * init({ apiKeys: ['your-wit-ai-key'] });
+ */
 export const init = (options: { apiKeys: string[] }) => {
     setApiKeys(options.apiKeys);
 };
 
+/**
+ * Transcribes audio content and returns an array of transcript segments.
+ *
+ * This function takes an audio file (or stream) and returns a structured transcript with
+ * timestamps. It handles preprocessing the audio, splitting it into chunks, and
+ * transcribing each chunk using Wit.ai's API.
+ *
+ * @param {string | Readable} content - Path to audio file, URL, or readable stream
+ * @param {TranscribeOptions} [options] - Configuration options for transcription
+ * @returns {Promise<Array>} - Promise resolving to an array of transcript segments
+ * @throws {Error} - If transcription fails or if options validation fails
+ * @example
+ * import { transcribe } from 'tafrigh';
+ *
+ * const transcript = await transcribe('path/to/audio.mp3', {
+ *   concurrency: 2,
+ *   splitOptions: {
+ *     chunkDuration: 60,
+ *     silenceDetection: { silenceThreshold: -30 }
+ *   }
+ * });
+ *
+ * console.log(transcript);
+ * // [{ text: "Hello world", start: 0, end: 2.5 }, ...]
+ */
 export const transcribe = async (content: Readable | string, options?: TranscribeOptions) => {
     logger.info(options, `transcribe ${content} (${typeof content})`);
 

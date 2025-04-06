@@ -20,7 +20,7 @@
 - **Audio Splitting**: Automatically splits audio files into manageable chunks based on silence detection, which is ideal for services that impose file or duration size limits.
 - **Noise Reduction**: Apply configurable noise reduction and dialogue enhancement to improve transcription accuracy.
 - **Multiple Inputs Supported**: Supports streams, remote media file urls or a local media file paths.
-- **Transcription**: Seamlessly integrates with Wit.ai to transcribe audio chunks, returning results in `.json` format.
+- **Transcription**: Seamlessly integrates with Wit.ai to transcribe audio chunks, returning results as structured transcript segments.
 - **Smart Concurrency**: Supports cycling between multiple Wit.ai API keys to avoid rate limits.
 - **Flexible Configuration**: Offers a range of options to control audio processing, silence detection, chunk duration, and more.
 - **Logging Control**: Uses the `pino` logging library, with logging levels configurable via environment variables.
@@ -51,7 +51,14 @@ yarn add tafrigh
 import { init, transcribe } from 'tafrigh';
 
 init({ apiKeys: ['your-wit-ai-key'] });
-const outputPath = await transcribe('https://your-domain.com/path/to/media.mp3'); // path to JSON of transcription
+const transcript = await transcribe('https://your-domain.com/path/to/media.mp3');
+console.log(transcript);
+// Output: Array of transcript segments with timestamps
+// [
+//   { text: "Hello world", start: 0, end: 2.5 },
+//   { text: "This is a test", start: 2.7, end: 4.2 },
+//   ...
+// ]
 ```
 
 The language that will be used for transcription will be associated with the language used for the wit.ai API key app.
@@ -66,7 +73,7 @@ Tafrigh allows for more advanced configurations:
 init({ apiKeys: ['wit-ai-key1', 'wit-ai-key2', 'wit-ai-key3'] });
 
 const options = {
-    concurrency: 5 // have at most 5 parallel worker threads doing the transcription
+    concurrency: 5, // have at most 5 parallel worker threads doing the transcription
     splitOptions: {
         chunkDuration: 60, // Split audio into 60-second chunks
         chunkMinThreshold: 4,
@@ -82,29 +89,67 @@ const options = {
             afftdn_nf: -25,
             dialogueEnhance: true,
             lowpass: 1,
-            highpass: 200
+            highpass: 200,
         },
     },
     callbacks: {
-        onPreprocessingFinished: async (filePath: string) => console.log(`Preprocessed ${filePath}`),
-        onPreprocessingProgress: async (percent: number) => console.log(`Preprocessing ${percent}% complete`),
-        onPreprocessingStarted: async (filePath: string) => console.log(`Preprocessed ${filePath}`),
+        onPreprocessingFinished: async (filePath) => console.log(`Preprocessed ${filePath}`),
+        onPreprocessingProgress: async (percent) => console.log(`Preprocessing ${percent}% complete`),
+        onPreprocessingStarted: async (filePath) => console.log(`Preprocessing ${filePath}`),
         onSplittingFinished: async () => console.log(`Finished splitting media`),
-        onSplittingProgress: async (chunkFilePath: string, chunkIndex: number) => console.log(`Chunked part ${chunkIndex} ${chunkFilePath}`),
-        onSplittingStarted: async (totalChunks: number) => console.log(`Chunking ${totalChunks} parts`),
-        onTranscriptionFinished: async (transcripts: Transcript[]) => console.log(`Transcribed ${transcripts.length} chunks`),
-        onTranscriptionProgress: async (chunkIndex: number) => console.log(`Transcribing part ${chunkIndex}`),
-        onTranscriptionStarted: async (totalChunks: number) => console.log(`Transcribing ${totalChunks} chunks`),
-    }
+        onSplittingProgress: async (chunkFilePath, chunkIndex) =>
+            console.log(`Chunked part ${chunkIndex} ${chunkFilePath}`),
+        onSplittingStarted: async (totalChunks) => console.log(`Chunking ${totalChunks} parts`),
+        onTranscriptionFinished: async (transcripts) => console.log(`Transcribed ${transcripts.length} chunks`),
+        onTranscriptionProgress: async (chunkIndex) => console.log(`Transcribing part ${chunkIndex}`),
+        onTranscriptionStarted: async (totalChunks) => console.log(`Transcribing ${totalChunks} chunks`),
+    },
 };
 
-const outputPath = await transcribe('path/to/test.mp3', options);
-console.log(outputPath); // path/to/output.json
+const transcript = await transcribe('path/to/test.mp3', options);
+console.log(transcript);
+// Output is an array of transcript segments:
+// [
+//   {
+//     text: "Hello world",
+//     start: 0,
+//     end: 2.5,
+//     confidence: 0.95,
+//     tokens: [
+//       { text: "Hello", start: 0, end: 1.2, confidence: 0.98 },
+//       { text: "world", start: 1.3, end: 2.5, confidence: 0.92 }
+//     ]
+//   },
+//   ...
+// ]
+```
+
+## Return Value
+
+The `transcribe()` function returns a Promise that resolves to an array of transcript segments. Each segment has the following structure:
+
+```typescript
+type Segment = {
+    text: string; // The transcribed text
+    start: number; // Start time in seconds
+    end: number; // End time in seconds
+    confidence?: number; // Confidence score (if available)
+    tokens?: Token[]; // Word-by-word breakdown (if available)
+};
+
+type Token = {
+    text: string; // Individual word or token
+    start: number; // Start time in seconds
+    end: number; // End time in seconds
+    confidence?: number; // Confidence score (if available)
+};
 ```
 
 ## API Documentation
 
 ### `init(options)`
+
+Initializes the library with the necessary configuration.
 
 - **options**: Global options applicable to the tafrigh library.
     - **apiKeys**: An array of `wit.ai` API keys that tafrigh will cycle through to prevent hitting rate limits. The more keys you provide the more concurrent processing it can support to speed up the total time.
@@ -114,16 +159,20 @@ console.log(outputPath); // path/to/output.json
         WIT_AI_API_KEYS="key1 key2 key3"
         ```
 
-### `transcribe(content: string | Readable, options: TranscribeFilesOptions)`
+### `transcribe(content: string | Readable, options?: TranscribeOptions): Promise<Segment[]>`
 
-- **content**: Any media supported by ffmpeg (ie: wav, mp4, mp3, etc.) or a Readable stream. You can specify it as a local path like `./folder/file.mp3` or as a remote url `https://domain.com/path/to/file.mp3`. You can use this in conjuction with modules like `ytdl-core` to feed it a Stream to transcribe.
+Transcribes audio content and returns an array of transcript segments.
+
+- **content**: Any media supported by ffmpeg (ie: wav, mp4, mp3, etc.) or a Readable stream. You can specify it as a local path like `./folder/file.mp3` or as a remote url `https://domain.com/path/to/file.mp3`. You can use this in conjunction with modules like `ytdl-core` to feed it a Stream to transcribe.
 - **options**: A detailed object to configure splitting, noise reduction, concurrency, and more.
+- **returns**: A Promise that resolves to an array of transcript segments, each containing the transcribed text, start and end times, and optional confidence scores and token details.
 
 #### Options
 
 - **concurrency**: An upper limit on the total number of concurrent processing threads to allow. The minimum between the total API keys and this value will be used for the actual number of parallel threads to allow. If you have more API keys specified, you can allow for higher concurrency, but you can also limit the total number of threads by setting this value so that your CPU is not taxed.
     - If this property is omitted `tafrigh` will use the total number of API keys available to determine the optimal number of threads to create based on the total number of chunks created per media.
 - **preventCleanup**: Set this to `true` if you do not want the directory created in the OS temporary folder for processing chunks and noise reduction to be automatically deleted upon transcription completion. This should rarely be set except for troubleshooting and debugging.
+- **retries**: The number of times to retry failed transcription requests using exponential backoff (default is 5).
 - **splitOptions**: Configuration for splitting audio files. This is important because due to the nature of our strategy for chunking the files so that we can get around maximum duration limitations of the `wit.ai` API. If we split prematurely then we can possibly split in between a word being spoken and the transcription will suffer from inaccuracy. It would be appropriate to spend some time adjusting these values if necessary so that your particular media file can be configured optimally as depending on the amount of times the speaker pauses or the background noise can vary. The audio chunks are padded with some silence and also normalized to improve transcription accuracy on less audible sections of the audio.
     - `chunkDuration` (default: `60` seconds): Maximum length of each audio chunk. Note that the actual length of the chunk can sometimes be less than this value depending on if we detected that we would have split in the middle of a word so we split at the last possible silence. This value will also affect the final transcription as depending on what value is chosen for this property there will be more granular timestamps.
     - `chunkMinThreshold` (default: `0.9` seconds): Minimum length of each chunk. If a chunk is detected that falls below this duration it will be filtered out.
@@ -147,34 +196,41 @@ console.log(outputPath); // path/to/output.json
     - `onSplittingFinished(): Promise<void>`: Fired just after splitting of the chunks is completed.
     - `onSplittingProgress(chunkFilePath: string, chunkIndex: number): void`: Fired as each chunk is created with the `chunkFilePath` pointing to the chunk created and the `chunkIndex` representing the index of the chunk relative to the `totalChunks` from the `onSplittingStarted` callback.
     - `onTranscriptionStarted(totalChunks: number): Promise<void>`: Fired just before the chunks are ready to be sent to `wit.ai` for transcriptions.
-    - `onTranscriptionFinished(transcripts: Transcript[]): Promise<void>`: Fired after all the transcriptions was processed. The `transcripts` represents the full payload we received from the `wit.ai` API and can contain extra metadata such as word-by-word timestamps which is filtered out from the final json file that gets written out.
+    - `onTranscriptionFinished(transcripts: Segment[]): Promise<void>`: Fired after all the transcriptions was processed. The `transcripts` represents the complete array of processed segments with all metadata.
     - `onTranscriptionProgress(chunkIndex: number): void`: Fired as each request is made to the `wit.ai` API with the `chunkIndex` represents the index with respect to the `totalChunks` value sent from the `onTranscriptionStarted` callback.
 
 ### Logging
 
 Adjust the level of logging output by setting the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
 
-#### Output
+## Example Transcript Output
 
-- The transcription result is saved in `.json` format in the specified output directory or the `.txt` if that is specified.
-
-The JSON file is an array that looks like this with `start` specifying the time in seconds the `text` starts and `end` marking where it ends. Note that setting an appropriate `chunkDuration` will affect how many elements this produces and the granularity of the transcription:
+The transcription result is returned as an array of segment objects:
 
 ```json
 [
-    { "text": "A", "start": 0, "end": 10 },
-    { "text": "B", "start": 10, "end": 20 },
-    { "text": "C", "start": 20, "end": 30 }
+    {
+        "text": "Hello world",
+        "start": 0,
+        "end": 2.5,
+        "confidence": 0.95,
+        "tokens": [
+            { "text": "Hello", "start": 0, "end": 1.2, "confidence": 0.98 },
+            { "text": "world", "start": 1.3, "end": 2.5, "confidence": 0.92 }
+        ]
+    },
+    { "text": "This is a test", "start": 2.7, "end": 4.2 },
+    { "text": "With timestamps", "start": 4.5, "end": 6.0 }
 ]
 ```
 
-- If the output file is specified with a `.txt` extension, then it will save the file as a plain-text file.
+Each segment contains:
 
-```text
-A
-B
-C
-```
+- `text`: The transcribed text for that segment
+- `start`: Start time in seconds
+- `end`: End time in seconds
+- `confidence` (optional): Confidence score between 0 and 1
+- `tokens` (optional): Detailed word-by-word breakdown with individual timestamps
 
 ## Contributing
 
