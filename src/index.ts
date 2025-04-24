@@ -3,7 +3,6 @@ import type { Readable } from 'node:stream';
 import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
 
 import type { TranscribeOptions } from './types.js';
 
@@ -58,50 +57,33 @@ export const transcribe = async (content: Readable | string, options?: Transcrib
     const outputDir = await fs.mkdtemp('tafrigh');
     logger.debug(`Using ${outputDir}`);
 
-    const cleanUp = async () => {
-        if (!options?.preventCleanup) {
-            logger.info(`Cleaning up ${outputDir}`);
-            await fs.rm(outputDir, { recursive: true });
-        }
-    };
+    const filePath = await formatMedia(
+        content,
+        path.format({
+            dir: outputDir,
+            ext: '.mp3',
+            name: Date.now().toString(),
+        }),
+        options?.preprocessOptions,
+        options?.callbacks,
+    );
+    const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
+    const transcript = chunkFiles.length
+        ? await transcribeAudioChunks(chunkFiles, {
+              callbacks: options?.callbacks,
+              concurrency: options?.concurrency,
+              retries: options?.retries,
+          })
+        : [];
 
-    const cleanUpAndExit = async () => {
-        await cleanUp();
-        process.exit(0);
-    };
+    logger.debug(chunkFiles, `Generated chunks`);
 
-    process.on('SIGINT', cleanUpAndExit);
-    process.on('SIGTERM', cleanUpAndExit);
-
-    try {
-        const filePath = await formatMedia(
-            content,
-            path.format({
-                dir: outputDir,
-                ext: '.mp3',
-                name: Date.now().toString(),
-            }),
-            options?.preprocessOptions,
-            options?.callbacks,
-        );
-        const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
-        const transcript = chunkFiles.length
-            ? await transcribeAudioChunks(chunkFiles, {
-                  callbacks: options?.callbacks,
-                  concurrency: options?.concurrency,
-                  retries: options?.retries,
-              })
-            : [];
-
-        logger.debug(chunkFiles, `Generated chunks`);
-
-        return transcript;
-    } finally {
-        process.off('SIGINT', cleanUpAndExit);
-        process.off('SIGTERM', cleanUpAndExit);
-
-        await cleanUp();
+    if (!options?.preventCleanup) {
+        logger.info(`Cleaning up ${outputDir}`);
+        await fs.rm(outputDir, { recursive: true });
     }
+
+    return transcript;
 };
 
 export * from './types.js';

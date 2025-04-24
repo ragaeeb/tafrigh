@@ -40,7 +40,7 @@ export const exponentialBackoffRetry = async <T>(
         } catch (error) {
             if (attempt < retries) {
                 const delay = baseDelay * Math.pow(2, attempt - 1);
-                logger.warn(`Attempt ${attempt} failed. Retrying in ${delay}ms...`);
+                logger.warn(`Attempt ${attempt} failed due to ${String(error)}. Retrying in ${delay}ms...`);
                 await setTimeout(delay); // Native setTimeout with promises
             } else {
                 logger.error(`All ${retries} attempts failed.`);

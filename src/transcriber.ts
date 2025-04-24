@@ -9,6 +9,10 @@ import { mapWitResponseToSegment } from './utils/mapping.js';
 import { exponentialBackoffRetry } from './utils/retry.js';
 import { dictation } from './wit.ai.js';
 
+const maskText = (text: string) => {
+    return text.slice(0, 3) + '*****' + text[Math.floor(text.length / 2)] + '*****' + text.slice(-3);
+};
+
 /**
  * Processes a single audio chunk and requests its transcription.
  *
@@ -25,10 +29,12 @@ const requestNextTranscript = async (
     callbacks?: Callbacks,
     retries?: number,
 ): Promise<null | Segment> => {
-    const response: WitAiResponse = await exponentialBackoffRetry(
-        () => dictation(chunk.filename, { apiKey: getNextApiKey() }),
-        retries,
-    );
+    const response: WitAiResponse = await exponentialBackoffRetry(() => {
+        const apiKey = getNextApiKey();
+        logger.info(`Calling dictation for ${chunk.filename} with key ${maskText(apiKey)}`);
+
+        return dictation(chunk.filename, { apiKey });
+    }, retries);
 
     if (callbacks?.onTranscriptionProgress) {
         callbacks.onTranscriptionProgress(index);
