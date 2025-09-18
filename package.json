@@ -1,31 +1,36 @@
 {
-    "name": "tafrigh",
-    "version": "4.0.2",
-    "description": "A NodeJS library for transcribing audio/video to text.",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "source": "src/index.ts",
-    "type": "module",
-    "scripts": {
-        "build": "tsup",
-        "test": "vitest run --coverage",
-        "e2e": "bun test testing/e2e.test.ts"
-    },
-    "files": [
-        "dist/index.js",
-        "dist/index.js.map",
-        "dist/*.d.ts"
-    ],
+    "author": "Ragaeeb Haq",
     "dependencies": {
         "ffmpeg-simplified": "^2.0.2",
         "jsonstream-next": "^3.0.0",
-        "p-queue": "^8.1.0",
-        "pino": "^9.6.0"
+        "p-queue": "^8.1.1",
+        "pino": "^9.10.0"
+    },
+    "description": "A NodeJS library for transcribing audio/video to text.",
+    "devDependencies": {
+        "@biomejs/biome": "^2.2.4",
+        "@types/bun": "^1.2.22",
+        "@types/jsonstream-next": "^3.0.3",
+        "@types/node": "^24.5.2",
+        "@vitest/coverage-v8": "^3.2.4",
+        "semantic-release": "^24.2.8",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2",
+        "vitest": "^3.2.4"
     },
     "engines": {
-        "bun": ">=1.2.8",
-        "node": ">=23.0.0"
+        "bun": ">=1.2.22",
+        "node": ">=22.0.0"
     },
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist/**"
+    ],
     "keywords": [
         "transcription",
         "wit.ai",
@@ -33,25 +38,17 @@
         "video",
         "nodejs"
     ],
-    "author": "Ragaeeb Haq",
     "license": "MIT",
-    "devDependencies": {
-        "@eslint/js": "^9.25.1",
-        "@types/bun": "^1.2.10",
-        "@types/jsonstream-next": "^3.0.3",
-        "@types/node": "^22.15.0",
-        "@vitest/coverage-v8": "^3.1.2",
-        "@vitest/eslint-plugin": "^1.1.43",
-        "eslint": "^9.25.1",
-        "eslint-config-prettier": "^10.1.2",
-        "eslint-plugin-perfectionist": "^4.12.3",
-        "eslint-plugin-prettier": "^5.2.6",
-        "globals": "^16.0.0",
-        "prettier": "^3.5.3",
-        "semantic-release": "^24.2.3",
-        "tsup": "^8.4.0",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.31.0",
-        "vitest": "^3.1.2"
-    }
+    "main": "dist/index.js",
+    "name": "tafrigh",
+    "scripts": {
+        "build": "tsup",
+        "e2e": "bun test testing/e2e.test.ts",
+        "lint": "biome check .",
+        "test": "vitest run --coverage"
+    },
+    "source": "src/index.ts",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "version": "4.1.0"
 }
