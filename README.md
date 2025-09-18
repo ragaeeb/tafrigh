@@ -180,7 +180,7 @@ try {
 }
 ```
 
-The temporary directory will continue to exist until you explicitly delete it (or you call `transcribe()` again with `preventCleanup: false` and no failures). This ensures you can safely resume failed chunks without repeating work for chunks that already succeeded.
+The temporary directory will continue to exist until you explicitly delete it. It is only auto‑deleted at the end of the same `transcribe()` call when `preventCleanup` is `false` and no failures occurred. This ensures you can safely resume failed chunks without repeating work for chunks that already succeeded.
 
 ## API Documentation
 

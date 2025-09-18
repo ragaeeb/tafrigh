@@ -1,6 +1,6 @@
 import type { AudioChunk } from 'ffmpeg-simplified';
 
-import { beforeEach, describe, expect, it, Mock, vi, vitest } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi, vitest } from 'vitest';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys';
 import { resumeFailedTranscriptions, transcribeAudioChunks } from './transcriber';
@@ -15,7 +15,7 @@ vi.mock('./utils/logger');
 
 describe('transcriber', () => {
     describe('transcribeAudioChunks', () => {
-        let apiKey;
+        let apiKey: string;
         let mockChunkFiles: AudioChunk[];
 
         beforeEach(() => {
@@ -77,7 +77,7 @@ describe('transcriber', () => {
                 });
             });
 
-            it('should return an empty array if all transcriptions fail', async () => {
+            it('should return an object with info if all transcriptions fail', async () => {
                 (dictation as any).mockRejectedValue(new Error('Network error'));
 
                 const callbacks = {
@@ -102,11 +102,16 @@ describe('transcriber', () => {
                 const initialResult = await transcribeAudioChunks(mockChunkFiles, { concurrency: 1, retries: 1 });
 
                 expect(initialResult.failures).toHaveLength(1);
-                expect(initialResult.transcripts).toEqual([{ ...mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
+                expect(initialResult.transcripts).toEqual([
+                    { ...mockChunkFiles[0].range, text: 'Transcript for chunk1' },
+                ]);
 
                 (dictation as Mock).mockResolvedValueOnce({ text: 'Transcript for chunk2 (retry)' });
 
                 const resumed = await resumeFailedTranscriptions(initialResult, { concurrency: 1 });
+
+                // dictation called: 2 times initially + 1 retry on the failed chunk
+                expect(dictation).toHaveBeenCalledTimes(3);
 
                 expect(resumed.failures).toHaveLength(0);
                 expect(resumed.transcripts).toEqual([

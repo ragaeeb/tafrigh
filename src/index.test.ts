@@ -1,4 +1,5 @@
-import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
+import { promises as fs } from 'node:fs';
+import { type AudioChunk, formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { TranscriptionError } from './errors.js';
@@ -26,8 +27,8 @@ describe('index', () => {
 
     describe('transcribe', () => {
         describe('happy path', () => {
-            let chunkFiles;
-            let testFile;
+            let chunkFiles: AudioChunk[];
+            let testFile: string;
 
             beforeEach(() => {
                 chunkFiles = [{ filename: 'chunk-001.wav', range: { end: 10, start: 0 } }];
@@ -41,7 +42,7 @@ describe('index', () => {
                 });
             });
 
-            it('should process the transcription successfully and not delete the temporary folder where the output was generated', async () => {
+            it('should process the transcription successfully', async () => {
                 const result = await transcribe(testFile);
 
                 expect(formatMedia).toHaveBeenCalledExactlyOnceWith(testFile, expect.any(String), undefined, undefined);
@@ -93,7 +94,7 @@ describe('index', () => {
                 ).rejects.toThrow('chunkDuration=1000 cannot be greater than 300s');
             });
 
-            it('should return an empty string there was no chunks generated', async () => {
+            it('should return an empty array when no chunks were generated', async () => {
                 (formatMedia as Mock).mockResolvedValue('processed.mp3');
                 (splitFileOnSilences as Mock).mockResolvedValue([]);
 
@@ -143,6 +144,8 @@ describe('index', () => {
                     concurrency: undefined,
                     retries: undefined,
                 });
+
+                await fs.rm(transcriptionError.outputDir!, { force: true, recursive: true });
             });
         });
     });

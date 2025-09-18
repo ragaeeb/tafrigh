@@ -1,16 +1,14 @@
-import type { Readable } from 'node:stream';
-
-import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
+import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 
 import { setApiKeys } from './apiKeys.js';
 import { TranscriptionError } from './errors.js';
 import { transcribeAudioChunks } from './transcriber.js';
+import type { TranscribeOptions } from './types.js';
 import logger from './utils/logger.js';
 import { validateTranscribeFileOptions } from './utils/validation.js';
-
-import type { TranscribeOptions } from './types.js';
 
 /**
  * Initializes the tafrigh library with the provided Wit.ai API keys.
@@ -101,12 +99,12 @@ export const transcribe = async (content: Readable | string, options?: Transcrib
     } finally {
         if (shouldCleanup && outputDir) {
             logger.info(`Cleaning up ${outputDir}`);
-            await fs.rm(outputDir, { recursive: true });
+            await fs.rm(outputDir, { force: true, recursive: true });
         }
     }
 };
 
-export * from './types.js';
-export * from './utils/constants.js';
 export * from './errors.js';
 export { resumeFailedTranscriptions } from './transcriber.js';
+export * from './types.js';
+export * from './utils/constants.js';

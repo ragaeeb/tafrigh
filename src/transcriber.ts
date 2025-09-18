@@ -3,15 +3,15 @@ import type { AudioChunk } from 'ffmpeg-simplified';
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
-import { FailedTranscription, TranscriptionError } from './errors.js';
-import { Callbacks, Segment, WitAiResponse } from './types.js';
+import type { FailedTranscription, TranscriptionError } from './errors.js';
+import type { Callbacks, Segment, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
 import { mapWitResponseToSegment } from './utils/mapping.js';
 import { exponentialBackoffRetry } from './utils/retry.js';
 import { dictation } from './wit.ai.js';
 
 const maskText = (text: string) => {
-    return text.slice(0, 3) + '*****' + text[Math.floor(text.length / 2)] + '*****' + text.slice(-3);
+    return `${text.slice(0, 3)}*****${text[Math.floor(text.length / 2)]}*****${text.slice(-3)}`;
 };
 
 /**
