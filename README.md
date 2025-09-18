@@ -145,6 +145,43 @@ type Token = {
 };
 ```
 
+### Handling Failures & Resuming Transcriptions
+
+If one or more chunks fail to transcribe after all retry attempts, `transcribe()` will throw a `TranscriptionError`. The error includes:
+
+- `transcripts`: Every chunk that was successfully transcribed before the failure occurred.
+- `failures`: Metadata about each failed chunk including the chunk file, its index, and the error that was raised.
+- `outputDir`: The temporary directory where the chunk files were stored. This directory is intentionally kept so you can retry only the failed chunks.
+
+You can resume work on the failed chunks by calling `resumeFailedTranscriptions` with the error instance. The helper will retry only the chunks that failed and merge the results with the previously completed transcripts.
+
+```ts
+import { promises as fs } from 'node:fs';
+
+import { TranscriptionError, resumeFailedTranscriptions, transcribe } from 'tafrigh';
+
+try {
+    const transcripts = await transcribe('path/to/large-file.mp3');
+    // All chunks completed successfully.
+} catch (error) {
+    if (error instanceof TranscriptionError) {
+        // Retry only the failed chunks. You can customise retries/concurrency if needed.
+        const { failures, transcripts } = await resumeFailedTranscriptions(error, { retries: 3 });
+
+        if (failures.length === 0) {
+            // Everything finished successfully on the retry.
+        }
+
+        // Clean up the temporary directory when you're finished resuming.
+        if (error.outputDir) {
+            await fs.rm(error.outputDir, { recursive: true });
+        }
+    }
+}
+```
+
+The temporary directory will continue to exist until you explicitly delete it. It is only auto‑deleted at the end of the same `transcribe()` call when `preventCleanup` is `false` and no failures occurred. This ensures you can safely resume failed chunks without repeating work for chunks that already succeeded.
+
 ## API Documentation
 
 ### `init(options)`

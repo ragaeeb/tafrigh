@@ -1,13 +1,12 @@
-import type { Readable } from 'node:stream';
-
-import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-
-import type { TranscribeOptions } from './types.js';
+import type { Readable } from 'node:stream';
+import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 
 import { setApiKeys } from './apiKeys.js';
+import { TranscriptionError } from './errors.js';
 import { transcribeAudioChunks } from './transcriber.js';
+import type { TranscribeOptions } from './types.js';
 import logger from './utils/logger.js';
 import { validateTranscribeFileOptions } from './utils/validation.js';
 
@@ -54,37 +53,58 @@ export const transcribe = async (content: Readable | string, options?: Transcrib
 
     validateTranscribeFileOptions(options);
 
-    const outputDir = await fs.mkdtemp('tafrigh');
-    logger.debug(`Using ${outputDir}`);
+    const preventCleanup = options?.preventCleanup ?? false;
+    let outputDir: string | undefined;
+    let shouldCleanup = !preventCleanup;
 
-    const filePath = await formatMedia(
-        content,
-        path.format({
-            dir: outputDir,
-            ext: '.mp3',
-            name: Date.now().toString(),
-        }),
-        options?.preprocessOptions,
-        options?.callbacks,
-    );
-    const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
-    const transcript = chunkFiles.length
-        ? await transcribeAudioChunks(chunkFiles, {
-              callbacks: options?.callbacks,
-              concurrency: options?.concurrency,
-              retries: options?.retries,
-          })
-        : [];
+    try {
+        outputDir = await fs.mkdtemp('tafrigh');
+        logger.debug(`Using ${outputDir}`);
 
-    logger.debug(chunkFiles, `Generated chunks`);
+        const filePath = await formatMedia(
+            content,
+            path.format({
+                dir: outputDir,
+                ext: '.mp3',
+                name: Date.now().toString(),
+            }),
+            options?.preprocessOptions,
+            options?.callbacks,
+        );
+        const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
 
-    if (!options?.preventCleanup) {
-        logger.info(`Cleaning up ${outputDir}`);
-        await fs.rm(outputDir, { recursive: true });
+        logger.debug(chunkFiles, `Generated chunks`);
+
+        if (chunkFiles.length === 0) {
+            return [];
+        }
+
+        const { failures, transcripts } = await transcribeAudioChunks(chunkFiles, {
+            callbacks: options?.callbacks,
+            concurrency: options?.concurrency,
+            retries: options?.retries,
+        });
+
+        if (failures.length > 0) {
+            shouldCleanup = false;
+            throw new TranscriptionError(`Failed to transcribe ${failures.length} chunk(s)`, {
+                chunkFiles,
+                failures,
+                outputDir,
+                transcripts,
+            });
+        }
+
+        return transcripts;
+    } finally {
+        if (shouldCleanup && outputDir) {
+            logger.info(`Cleaning up ${outputDir}`);
+            await fs.rm(outputDir, { force: true, recursive: true });
+        }
     }
-
-    return transcript;
 };
 
+export * from './errors.js';
+export { resumeFailedTranscriptions } from './transcriber.js';
 export * from './types.js';
 export * from './utils/constants.js';
