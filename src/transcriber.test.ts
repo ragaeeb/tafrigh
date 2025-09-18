@@ -3,7 +3,7 @@ import type { AudioChunk } from 'ffmpeg-simplified';
 import { beforeEach, describe, expect, it, Mock, vi, vitest } from 'vitest';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys';
-import { transcribeAudioChunks } from './transcriber';
+import { resumeFailedTranscriptions, transcribeAudioChunks } from './transcriber';
 import { dictation } from './wit.ai';
 
 vi.mock('./wit.ai');
@@ -43,10 +43,13 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, concurrency: 1 });
 
-                expect(result).toEqual([
-                    { ...mockChunkFiles[0].range, text: 'Transcript for chunk1' },
-                    { ...mockChunkFiles[1].range, text: 'Transcript for chunk2' },
-                ]);
+                expect(result).toEqual({
+                    failures: [],
+                    transcripts: [
+                        { ...mockChunkFiles[0].range, text: 'Transcript for chunk1' },
+                        { ...mockChunkFiles[1].range, text: 'Transcript for chunk2' },
+                    ],
+                });
                 expect(dictation).toHaveBeenCalledWith('chunk1.wav', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk2.wav', { apiKey });
 
@@ -58,7 +61,7 @@ describe('transcriber', () => {
                 expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(2, 1);
 
                 expect(callbacks.onTranscriptionFinished).toHaveBeenCalledOnce();
-                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result);
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result.transcripts);
             });
 
             it('should skip non-final transcriptions', async () => {
@@ -68,13 +71,48 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(mockChunkFiles, { concurrency: 1 });
 
-                expect(result).toEqual([{ ...mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
+                expect(result).toEqual({
+                    failures: [],
+                    transcripts: [{ ...mockChunkFiles[0].range, text: 'Transcript for chunk1' }],
+                });
             });
 
             it('should return an empty array if all transcriptions fail', async () => {
                 (dictation as any).mockRejectedValue(new Error('Network error'));
 
-                await expect(transcribeAudioChunks(mockChunkFiles, { retries: 1 })).rejects.toThrow('Network error');
+                const callbacks = {
+                    onTranscriptionFinished: vitest.fn(),
+                    onTranscriptionProgress: vitest.fn(),
+                };
+
+                const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, retries: 1 });
+
+                expect(result.transcripts).toEqual([]);
+                expect(result.failures).toHaveLength(mockChunkFiles.length);
+                expect(result.failures[0]).toMatchObject({ chunk: mockChunkFiles[0], index: 0 });
+                expect(callbacks.onTranscriptionProgress).toHaveBeenCalledTimes(mockChunkFiles.length);
+                expect(callbacks.onTranscriptionFinished).not.toHaveBeenCalled();
+            });
+
+            it('should allow resuming failed chunks', async () => {
+                (dictation as Mock)
+                    .mockResolvedValueOnce({ text: 'Transcript for chunk1' })
+                    .mockRejectedValueOnce(new Error('Rate limited'));
+
+                const initialResult = await transcribeAudioChunks(mockChunkFiles, { concurrency: 1, retries: 1 });
+
+                expect(initialResult.failures).toHaveLength(1);
+                expect(initialResult.transcripts).toEqual([{ ...mockChunkFiles[0].range, text: 'Transcript for chunk1' }]);
+
+                (dictation as Mock).mockResolvedValueOnce({ text: 'Transcript for chunk2 (retry)' });
+
+                const resumed = await resumeFailedTranscriptions(initialResult, { concurrency: 1 });
+
+                expect(resumed.failures).toHaveLength(0);
+                expect(resumed.transcripts).toEqual([
+                    { ...mockChunkFiles[0].range, text: 'Transcript for chunk1' },
+                    { ...mockChunkFiles[1].range, text: 'Transcript for chunk2 (retry)' },
+                ]);
             });
         });
 
@@ -110,44 +148,47 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(mockChunkFiles, { callbacks, concurrency: 2 });
 
-                expect(result).toEqual([
-                    {
-                        confidence: 1,
-                        end: 10.5,
-                        start: 0.5,
-                        text: 'Transcribed text for chunk1.mp3',
-                        tokens: [
-                            { confidence: 0.5, end: 4.5, start: 0.5, text: 'Transcribed' },
-                            { confidence: 0.5, end: 6.5, start: 5.5, text: 'text' },
-                            { confidence: 0.5, end: 8.5, start: 7.5, text: 'for' },
-                            { confidence: 0.5, end: 10.5, start: 9.5, text: 'chunk1.mp3' },
-                        ],
-                    },
-                    {
-                        confidence: 1,
-                        end: 20.5,
-                        start: 10.5,
-                        text: 'Transcribed text for chunk2.mp3',
-                        tokens: [
-                            { confidence: 0.5, end: 14.5, start: 10.5, text: 'Transcribed' },
-                            { confidence: 0.5, end: 16.5, start: 15.5, text: 'text' },
-                            { confidence: 0.5, end: 18.5, start: 17.5, text: 'for' },
-                            { confidence: 0.5, end: 20.5, start: 19.5, text: 'chunk2.mp3' },
-                        ],
-                    },
-                    {
-                        confidence: 1,
-                        end: 30.5,
-                        start: 20.5,
-                        text: 'Transcribed text for chunk3.mp3',
-                        tokens: [
-                            { confidence: 0.5, end: 24.5, start: 20.5, text: 'Transcribed' },
-                            { confidence: 0.5, end: 26.5, start: 25.5, text: 'text' },
-                            { confidence: 0.5, end: 28.5, start: 27.5, text: 'for' },
-                            { confidence: 0.5, end: 30.5, start: 29.5, text: 'chunk3.mp3' },
-                        ],
-                    },
-                ]);
+                expect(result).toEqual({
+                    failures: [],
+                    transcripts: [
+                        {
+                            confidence: 1,
+                            end: 10.5,
+                            start: 0.5,
+                            text: 'Transcribed text for chunk1.mp3',
+                            tokens: [
+                                { confidence: 0.5, end: 4.5, start: 0.5, text: 'Transcribed' },
+                                { confidence: 0.5, end: 6.5, start: 5.5, text: 'text' },
+                                { confidence: 0.5, end: 8.5, start: 7.5, text: 'for' },
+                                { confidence: 0.5, end: 10.5, start: 9.5, text: 'chunk1.mp3' },
+                            ],
+                        },
+                        {
+                            confidence: 1,
+                            end: 20.5,
+                            start: 10.5,
+                            text: 'Transcribed text for chunk2.mp3',
+                            tokens: [
+                                { confidence: 0.5, end: 14.5, start: 10.5, text: 'Transcribed' },
+                                { confidence: 0.5, end: 16.5, start: 15.5, text: 'text' },
+                                { confidence: 0.5, end: 18.5, start: 17.5, text: 'for' },
+                                { confidence: 0.5, end: 20.5, start: 19.5, text: 'chunk2.mp3' },
+                            ],
+                        },
+                        {
+                            confidence: 1,
+                            end: 30.5,
+                            start: 20.5,
+                            text: 'Transcribed text for chunk3.mp3',
+                            tokens: [
+                                { confidence: 0.5, end: 24.5, start: 20.5, text: 'Transcribed' },
+                                { confidence: 0.5, end: 26.5, start: 25.5, text: 'text' },
+                                { confidence: 0.5, end: 28.5, start: 27.5, text: 'for' },
+                                { confidence: 0.5, end: 30.5, start: 29.5, text: 'chunk3.mp3' },
+                            ],
+                        },
+                    ],
+                });
 
                 // Ensure that dictation was called with each chunk filename
                 expect(dictation).toHaveBeenCalledWith('chunk1.mp3', { apiKey });
@@ -163,7 +204,7 @@ describe('transcriber', () => {
                 expect(callbacks.onTranscriptionProgress).toHaveBeenNthCalledWith(3, 2);
 
                 expect(callbacks.onTranscriptionFinished).toHaveBeenCalledOnce();
-                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result);
+                expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result.transcripts);
             });
 
             it('should limit concurrency when more API keys than chunks', async () => {
@@ -181,9 +222,10 @@ describe('transcriber', () => {
 
                 const result = await transcribeAudioChunks(chunkFiles, { concurrency: 2 });
 
-                expect(result).toHaveLength(2);
-                expect(result[0].text).toBe('Transcribed text for chunk1.mp3');
-                expect(result[1].text).toBe('Transcribed text for chunk2.mp3');
+                expect(result.failures).toHaveLength(0);
+                expect(result.transcripts).toHaveLength(2);
+                expect(result.transcripts[0].text).toBe('Transcribed text for chunk1.mp3');
+                expect(result.transcripts[1].text).toBe('Transcribed text for chunk2.mp3');
 
                 expect(dictation).toHaveBeenCalledWith('chunk1.mp3', { apiKey });
                 expect(dictation).toHaveBeenCalledWith('chunk2.mp3', { apiKey });

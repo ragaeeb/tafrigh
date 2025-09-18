@@ -3,6 +3,7 @@ import type { AudioChunk } from 'ffmpeg-simplified';
 import PQueue from 'p-queue';
 
 import { getApiKeysCount, getNextApiKey } from './apiKeys.js';
+import { FailedTranscription, TranscriptionError } from './errors.js';
 import { Callbacks, Segment, WitAiResponse } from './types.js';
 import logger from './utils/logger.js';
 import { mapWitResponseToSegment } from './utils/mapping.js';
@@ -60,27 +61,39 @@ const transcribeAudioChunksInSingleThread = async (
     chunkFiles: AudioChunk[],
     callbacks?: Callbacks,
     retries?: number,
-): Promise<Segment[]> => {
+): Promise<TranscribeAudioChunksResult> => {
+    const failures: FailedTranscription[] = [];
     const transcripts: Segment[] = [];
 
     logger.debug(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
 
     for (const [index, chunk] of chunkFiles.entries()) {
-        const transcript = await requestNextTranscript(chunk, index, callbacks, retries);
+        try {
+            const transcript = await requestNextTranscript(chunk, index, callbacks, retries);
 
-        if (transcript) {
-            transcripts.push(transcript);
-            logger.trace(`Transcript received for chunk: ${chunk.filename}`);
-        } else {
-            logger.warn(`Skipping empty transcript`);
+            if (transcript) {
+                transcripts.push(transcript);
+                logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+            } else {
+                logger.warn(`Skipping empty transcript`);
+            }
+        } catch (error) {
+            logger.error(error, `Failed to transcribe chunk: ${chunk.filename}`);
+            failures.push({ chunk, error, index });
+
+            if (callbacks?.onTranscriptionProgress) {
+                callbacks.onTranscriptionProgress(index);
+            }
         }
     }
 
-    if (callbacks?.onTranscriptionFinished) {
+    transcripts.sort((a: Segment, b: Segment) => a.start - b.start);
+
+    if (failures.length === 0 && callbacks?.onTranscriptionFinished) {
         await callbacks.onTranscriptionFinished(transcripts);
     }
 
-    return transcripts;
+    return { failures, transcripts };
 };
 
 /**
@@ -98,20 +111,30 @@ const transcribeAudioChunksWithConcurrency = async (
     concurrency: number,
     callbacks?: Callbacks,
     retries?: number,
-): Promise<Segment[]> => {
+): Promise<TranscribeAudioChunksResult> => {
     logger.debug(`transcribeAudioChunksWithConcurrency ${concurrency}`);
 
+    const failures: FailedTranscription[] = [];
     const transcripts: Segment[] = [];
     const queue = new PQueue({ concurrency });
 
     const processChunk = async (index: number, chunk: AudioChunk) => {
-        const transcript = await requestNextTranscript(chunk, index, callbacks, retries);
+        try {
+            const transcript = await requestNextTranscript(chunk, index, callbacks, retries);
 
-        if (transcript) {
-            transcripts.push(transcript);
-            logger.trace(`Transcript received for chunk: ${chunk.filename}`);
-        } else {
-            logger.warn(`Skipping empty transcript`);
+            if (transcript) {
+                transcripts.push(transcript);
+                logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+            } else {
+                logger.warn(`Skipping empty transcript`);
+            }
+        } catch (error) {
+            logger.error(error, `Failed to transcribe chunk: ${chunk.filename}`);
+            failures.push({ chunk, error, index });
+
+            if (callbacks?.onTranscriptionProgress) {
+                callbacks.onTranscriptionProgress(index);
+            }
         }
     };
 
@@ -124,11 +147,11 @@ const transcribeAudioChunksWithConcurrency = async (
     // Sort transcripts by their original order based on range to maintain chunk order
     transcripts.sort((a: Segment, b: Segment) => a.start - b.start);
 
-    if (callbacks?.onTranscriptionFinished) {
+    if (failures.length === 0 && callbacks?.onTranscriptionFinished) {
         await callbacks.onTranscriptionFinished(transcripts);
     }
 
-    return transcripts;
+    return { failures, transcripts };
 };
 
 /**
@@ -155,10 +178,17 @@ type TranscribeAudioChunksOptions = {
  * @returns {Promise<Segment[]>} - Array of transcribed segments
  * @internal
  */
+export type TranscribeAudioChunksResult = {
+    failures: FailedTranscription[];
+    transcripts: Segment[];
+};
+
+type ResumeOptions = Pick<TranscribeAudioChunksOptions, 'callbacks' | 'concurrency' | 'retries'>;
+
 export const transcribeAudioChunks = async (
     chunkFiles: AudioChunk[],
     { callbacks, concurrency = 1, retries }: TranscribeAudioChunksOptions = {},
-): Promise<Segment[]> => {
+): Promise<TranscribeAudioChunksResult> => {
     const apiKeyCount = getApiKeysCount();
     const maxConcurrency = concurrency && concurrency <= apiKeyCount ? concurrency : apiKeyCount;
 
@@ -171,4 +201,24 @@ export const transcribeAudioChunks = async (
     }
 
     return transcribeAudioChunksWithConcurrency(chunkFiles, maxConcurrency, callbacks, retries);
+};
+
+export const resumeFailedTranscriptions = async (
+    error: Pick<TranscriptionError, 'failures' | 'transcripts'>,
+    options?: ResumeOptions,
+): Promise<TranscribeAudioChunksResult> => {
+    const failedChunks = error.failures
+        .slice()
+        .sort((a, b) => a.index - b.index)
+        .map((failure) => failure.chunk);
+
+    const { failures, transcripts } = await transcribeAudioChunks(failedChunks, options);
+
+    const combinedTranscripts = [...error.transcripts, ...transcripts];
+    combinedTranscripts.sort((a: Segment, b: Segment) => a.start - b.start);
+
+    return {
+        failures,
+        transcripts: combinedTranscripts,
+    };
 };
