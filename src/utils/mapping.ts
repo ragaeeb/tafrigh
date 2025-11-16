@@ -1,5 +1,5 @@
-import type { Segment, WitAiResponse } from '@/types.js';
 import type { TimeRange } from 'ffmpeg-simplified';
+import type { Segment, WitAiResponse } from '@/types.js';
 
 /**
  * Maps the raw Wit.ai API response to a standardized Segment object.

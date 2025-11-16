@@ -1,28 +1,61 @@
-import { promises as fs } from 'node:fs';
-import { type AudioChunk, formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, mock, vi } from 'bun:test';
+import type { AudioChunk } from 'ffmpeg-simplified';
 
-import { TranscriptionError } from './errors.js';
-import { transcribe } from './index.js';
-import { transcribeAudioChunks } from './transcriber.js';
+const mkdtempMock = vi.fn<() => Promise<string>>().mockResolvedValue('temp-dir');
+const rmMock = vi.fn<() => Promise<void>>().mockResolvedValue();
 
-vi.mock('./transcriber.js', () => ({
-    resumeFailedTranscriptions: vi.fn(),
-    transcribeAudioChunks: vi.fn(),
+mock.module('node:fs', () => ({
+    promises: {
+        mkdtemp: mkdtempMock,
+        rm: rmMock,
+    },
 }));
 
-vi.mock('ffmpeg-simplified', async () => {
-    return {
-        formatMedia: vi.fn(),
-        splitFileOnSilences: vi.fn(),
-    };
-});
+const formatMediaMock =
+    vi.fn<(source: string, destination: string, preprocess?: unknown, callbacks?: unknown) => Promise<string>>();
+const splitFileOnSilencesMock =
+    vi.fn<
+        (filePath: string, outputDir: string, splitOptions?: unknown, callbacks?: unknown) => Promise<AudioChunk[]>
+    >();
 
-vi.mock('./utils/logger.js');
+mock.module('ffmpeg-simplified', () => ({
+    formatMedia: formatMediaMock,
+    splitFileOnSilences: splitFileOnSilencesMock,
+}));
+
+const transcribeAudioChunksMock = vi.fn();
+
+const loggerMock = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    trace: vi.fn(),
+    warn: vi.fn(),
+};
+
+mock.module('./utils/logger.js', () => ({
+    default: loggerMock,
+}));
+
+const transcriberModule = await import('./transcriber.js');
+const transcribeAudioChunksSpy = vi
+    .spyOn(transcriberModule, 'transcribeAudioChunks')
+    .mockImplementation(transcribeAudioChunksMock);
+
+const { promises: fs } = await import('node:fs');
+const { TranscriptionError } = await import('./errors.js');
+const { transcribe } = await import('./index.js');
 
 describe('index', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        mkdtempMock.mockReset().mockResolvedValue('temp-dir');
+        rmMock.mockReset().mockResolvedValue();
+        formatMediaMock.mockReset();
+        splitFileOnSilencesMock.mockReset();
+        transcribeAudioChunksMock.mockReset();
+        for (const fn of Object.values(loggerMock)) {
+            fn.mockReset();
+        }
     });
 
     describe('transcribe', () => {
@@ -34,9 +67,9 @@ describe('index', () => {
                 chunkFiles = [{ filename: 'chunk-001.wav', range: { end: 10, start: 0 } }];
                 testFile = 'audio-file.mp3';
 
-                (formatMedia as Mock).mockResolvedValue('processed.mp3');
-                (splitFileOnSilences as Mock).mockResolvedValue(chunkFiles);
-                (transcribeAudioChunks as Mock).mockResolvedValue({
+                formatMediaMock.mockResolvedValue('processed.mp3');
+                splitFileOnSilencesMock.mockResolvedValue(chunkFiles);
+                transcribeAudioChunksMock.mockResolvedValue({
                     failures: [],
                     transcripts: [{ end: 10, start: 0, text: 'Hello World' }],
                 });
@@ -45,17 +78,19 @@ describe('index', () => {
             it('should process the transcription successfully', async () => {
                 const result = await transcribe(testFile);
 
-                expect(formatMedia).toHaveBeenCalledExactlyOnceWith(testFile, expect.any(String), undefined, undefined);
+                expect(formatMediaMock).toHaveBeenCalledTimes(1);
+                expect(formatMediaMock).toHaveBeenCalledWith(testFile, expect.any(String), undefined, undefined);
 
-                expect(splitFileOnSilences).toHaveBeenCalledWith(
+                expect(splitFileOnSilencesMock).toHaveBeenCalledWith(
                     'processed.mp3',
                     expect.any(String),
                     undefined,
                     undefined,
                 );
-                expect(splitFileOnSilences).toHaveBeenCalledOnce();
+                expect(splitFileOnSilencesMock).toHaveBeenCalledTimes(1);
 
-                expect(transcribeAudioChunks).toHaveBeenCalledExactlyOnceWith(chunkFiles, {
+                expect(transcribeAudioChunksMock).toHaveBeenCalledTimes(1);
+                expect(transcribeAudioChunksMock).toHaveBeenCalledWith(chunkFiles, {
                     callbacks: undefined,
                     concurrency: undefined,
                     retries: undefined,
@@ -64,12 +99,12 @@ describe('index', () => {
                 expect(result).toEqual([{ end: 10, start: 0, text: 'Hello World' }]);
             });
 
-            it('should process the transcription successfully', async () => {
+            it('should forward the provided concurrency option', async () => {
                 const result = await transcribe(testFile, {
                     concurrency: 2,
                 });
 
-                expect(transcribeAudioChunks).toHaveBeenCalledWith(chunkFiles, {
+                expect(transcribeAudioChunksMock).toHaveBeenCalledWith(chunkFiles, {
                     callbacks: undefined,
                     concurrency: 2,
                     retries: undefined,
@@ -95,12 +130,12 @@ describe('index', () => {
             });
 
             it('should return an empty array when no chunks were generated', async () => {
-                (formatMedia as Mock).mockResolvedValue('processed.mp3');
-                (splitFileOnSilences as Mock).mockResolvedValue([]);
+                formatMediaMock.mockResolvedValue('processed.mp3');
+                splitFileOnSilencesMock.mockResolvedValue([]);
 
                 const result = await transcribe('audio.mp3');
 
-                expect(transcribeAudioChunks).not.toHaveBeenCalled();
+                expect(transcribeAudioChunksMock).not.toHaveBeenCalled();
                 expect(result).toEqual([]);
             });
 
@@ -110,9 +145,9 @@ describe('index', () => {
                     { filename: 'chunk-002.wav', range: { end: 20, start: 10 } },
                 ];
 
-                (formatMedia as Mock).mockResolvedValue('processed.mp3');
-                (splitFileOnSilences as Mock).mockResolvedValue(failingChunks);
-                (transcribeAudioChunks as Mock).mockResolvedValue({
+                formatMediaMock.mockResolvedValue('processed.mp3');
+                splitFileOnSilencesMock.mockResolvedValue(failingChunks);
+                transcribeAudioChunksMock.mockResolvedValue({
                     failures: [
                         {
                             chunk: failingChunks[1],
@@ -139,7 +174,7 @@ describe('index', () => {
                 expect(transcriptionError.transcripts).toEqual([{ end: 10, start: 0, text: 'Partial transcript' }]);
                 expect(transcriptionError.outputDir).toBeDefined();
 
-                expect(transcribeAudioChunks).toHaveBeenCalledWith(failingChunks, {
+                expect(transcribeAudioChunksMock).toHaveBeenCalledWith(failingChunks, {
                     callbacks: undefined,
                     concurrency: undefined,
                     retries: undefined,
@@ -148,5 +183,8 @@ describe('index', () => {
                 await fs.rm(transcriptionError.outputDir!, { force: true, recursive: true });
             });
         });
+    });
+    afterAll(() => {
+        transcribeAudioChunksSpy.mockRestore();
     });
 });

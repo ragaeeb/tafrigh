@@ -8,15 +8,13 @@
     },
     "description": "A NodeJS library for transcribing audio/video to text.",
     "devDependencies": {
-        "@biomejs/biome": "^2.2.4",
+        "@biomejs/biome": "^2.3.5",
         "@types/bun": "^1.2.22",
         "@types/jsonstream-next": "^3.0.3",
         "@types/node": "^24.5.2",
-        "@vitest/coverage-v8": "^3.2.4",
+        "esbuild": "^0.25.12",
         "semantic-release": "^24.2.8",
-        "tsup": "^8.5.0",
-        "typescript": "^5.9.2",
-        "vitest": "^3.2.4"
+        "typescript": "^5.9.2"
     },
     "engines": {
         "bun": ">=1.2.22",
@@ -42,10 +40,10 @@
     "main": "dist/index.js",
     "name": "tafrigh",
     "scripts": {
-        "build": "tsup",
+        "build": "bun scripts/build.ts",
         "e2e": "bun test testing/e2e.test.ts",
         "lint": "biome check .",
-        "test": "vitest run --coverage"
+        "test": "bun test"
     },
     "source": "src/index.ts",
     "type": "module",

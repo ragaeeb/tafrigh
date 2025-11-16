@@ -19,10 +19,12 @@
 
 - **Audio Splitting**: Automatically splits audio files into manageable chunks based on silence detection, which is ideal for services that impose file or duration size limits.
 - **Noise Reduction**: Apply configurable noise reduction and dialogue enhancement to improve transcription accuracy.
-- **Multiple Inputs Supported**: Supports streams, remote media file urls or a local media file paths.
-- **Transcription**: Seamlessly integrates with Wit.ai to transcribe audio chunks, returning results as structured transcript segments.
-- **Smart Concurrency**: Supports cycling between multiple Wit.ai API keys to avoid rate limits.
-- **Flexible Configuration**: Offers a range of options to control audio processing, silence detection, chunk duration, and more.
+- **Multiple Inputs Supported**: Supports streams, remote media file URLs, or local media file paths.
+- **End-to-end Transcription Pipeline**: The `transcribe` helper formats media, splits it, transcribes each chunk, and yields typed segment objects ready for downstream consumption.
+- **Smart Concurrency & Key Rotation**: Cycle through multiple Wit.ai API keys, control worker concurrency, and resume failed jobs with `resumeFailedTranscriptions`.
+- **Reliable Retries**: Automatic exponential backoff protects against transient API failures and surfaces partial progress when errors persist.
+- **Rich Error Reporting**: Failures raise a `TranscriptionError` that captures failed chunks, successful transcripts, and the working directory for debugging.
+- **Flexible Configuration**: Tune chunk duration, silence detection, preprocessing callbacks, retry limits, and more through typed options.
 - **Logging Control**: Uses the `pino` logging library, with logging levels configurable via environment variables.
 
 ## Installation
@@ -240,6 +242,29 @@ Transcribes audio content and returns an array of transcript segments.
 
 Adjust the level of logging output by setting the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
 
+## API Reference
+
+### `init(options: { apiKeys: string[] })`
+
+Configure the library with one or more Wit.ai API keys. You can call this once during application startup or rely on environment variables and `setApiKeys` directly. Internally this seeds the round-robin key pool used by the transcriber.
+
+### `transcribe(content: string | Readable, options?: TranscribeOptions)`
+
+Runs the full transcription pipeline and returns ordered `Segment[]` objects. Use the `options` bag to control concurrency, retries, preprocessing hooks, and silence detection thresholds.
+
+### `resumeFailedTranscriptions(result: TranscribeAudioChunksResult, options?: Partial<TranscribeAudioChunksOptions>)`
+
+Accepts a partial result from `transcribe` (or direct `transcribeAudioChunks` usage) and reprocesses only the failed chunks. This makes it easy to retry temporary Wit.ai errors without repeating successful work.
+
+### `TranscriptionError`
+
+Errors thrown by `transcribe` include the original failures, successful transcripts, and the working directory path. This enables custom recovery flows such as inspecting the generated chunks or calling `resumeFailedTranscriptions` later on.
+
+### Low-level helpers
+
+- `speechToText` and `dictation` provide thin wrappers around Wit.ai endpoints when you need raw API access.
+- Utility constants such as `MAX_CHUNK_DURATION` and `MIN_CHUNK_DURATION` help enforce valid chunking parameters in your own tooling.
+
 ## Example Transcript Output
 
 The transcription result is returned as an array of segment objects:
@@ -272,6 +297,12 @@ Each segment contains:
 ## Contributing
 
 Contributions are welcome! Please make sure your contributions adhere to the coding standards and are accompanied by relevant tests.
+
+## Development
+
+- Build the library output with `bun run build`. This executes `scripts/build.ts`, a lightweight tsdown-compatible runner that bundles the entries declared in `tsdown.config.mjs` and emits `.d.ts` files through `tsc`.
+- Run the unit tests with `bun test`. End-to-end tests are skipped by default; set `RUN_E2E=true` before running tests to exercise them against a real Wit.ai account and local `ffmpeg` installation.
+- Lint and format the project with `bun run lint`.
 
 ## License
 

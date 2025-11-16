@@ -1,54 +1,68 @@
-import https from 'https';
-import JSONStream from 'jsonstream-next';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, mock, vi } from 'bun:test';
 
-import { dictation, speechToText } from './wit.ai';
+const requestMock = vi.fn();
+const createReadStreamMock = vi.fn();
+const jsonStreamParseMock = vi.fn();
 
-vi.mock('https');
-vi.mock('fs');
-vi.mock('jsonstream-next');
+mock.module('node:https', () => ({
+    default: { request: requestMock },
+    request: requestMock,
+}));
+
+mock.module('node:fs', () => ({
+    createReadStream: createReadStreamMock,
+    default: { createReadStream: createReadStreamMock },
+}));
+
+mock.module('jsonstream-next', () => ({
+    default: { parse: jsonStreamParseMock },
+    parse: jsonStreamParseMock,
+}));
+
+const { dictation, speechToText } = await import('./wit.ai.js');
 
 describe('wit.ai', () => {
     beforeEach(() => {
-        vi.resetAllMocks();
+        requestMock.mockReset();
+        createReadStreamMock.mockReset().mockReturnValue({ pipe: vi.fn() });
+        jsonStreamParseMock.mockReset();
     });
 
     afterEach(() => {
-        vi.clearAllMocks();
+        requestMock.mockReset();
+        createReadStreamMock.mockReset();
+        jsonStreamParseMock.mockReset();
     });
 
     describe('speechToText', () => {
         const filePath = 'test.wav';
         const options = { apiKey: 'test-api-key' };
 
-        afterEach(() => {
-            vi.restoreAllMocks();
-        });
-
         it('should process the WAV file and return the final transcription', async () => {
-            const mockResponse = {
-                on: vi.fn((event, callback) => {
-                    if (event === 'data') {
-                        callback(
-                            JSON.stringify({
-                                speech: {
-                                    confidence: 0.9,
-                                    tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
-                                },
-                                text: 'test transcription',
-                            }),
-                        );
-                    }
-                    if (event === 'end') {
-                        callback();
-                    }
-                }),
-                statusCode: 200,
-            };
+            requestMock.mockImplementation((_url, _options, callback) => {
+                const response = {
+                    on: (event: string, handler: (chunk?: string) => void) => {
+                        if (event === 'data') {
+                            handler(
+                                JSON.stringify({
+                                    speech: {
+                                        confidence: 0.9,
+                                        tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
+                                    },
+                                    text: 'test transcription',
+                                }),
+                            );
+                        }
+                        if (event === 'end') {
+                            handler();
+                        }
+                        return response;
+                    },
+                    statusCode: 200,
+                } as const;
 
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
-                callback(mockResponse as any);
+                callback(response as any);
+
                 return {
                     end: vi.fn(),
                     on: vi.fn(),
@@ -65,21 +79,22 @@ describe('wit.ai', () => {
         });
 
         it('should handle HTTP error response', async () => {
-            const mockResponse = {
-                on: vi.fn((event, callback) => {
-                    if (event === 'data') {
-                        callback('');
-                    }
-                    if (event === 'end') {
-                        callback();
-                    }
-                }),
-                statusCode: 500,
-            };
+            requestMock.mockImplementation((_url, _options, callback) => {
+                const response = {
+                    on: (event: string, handler: () => void) => {
+                        if (event === 'data') {
+                            handler();
+                        }
+                        if (event === 'end') {
+                            handler();
+                        }
+                        return response;
+                    },
+                    statusCode: 500,
+                } as const;
 
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation((_url, _options, callback: any) => {
-                callback(mockResponse as any);
+                callback(response as any);
+
                 return {
                     end: vi.fn(),
                     on: vi.fn(),
@@ -90,16 +105,17 @@ describe('wit.ai', () => {
         });
 
         it('should handle https request error', async () => {
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation(() => {
+            requestMock.mockImplementation(() => {
                 const req = {
                     end: vi.fn(),
-                    on: vi.fn((event, callback) => {
+                    on: (event: string, handler: (error: Error) => void) => {
                         if (event === 'error') {
-                            callback(new Error('test error'));
+                            handler(new Error('test error'));
                         }
-                    }),
-                };
+                        return req;
+                    },
+                } as const;
+
                 return req;
             });
 
@@ -112,104 +128,115 @@ describe('wit.ai', () => {
         const options = { apiKey: 'test-api-key' };
 
         it('should return the final transcription', async () => {
-            const mockResponse = {
+            const parserHandlers: Record<string, (value?: any) => void> = {};
+            const parser = {
+                on: (event: string, handler: (value?: unknown) => void) => {
+                    parserHandlers[event] = handler;
+                    return parser;
+                },
+            };
+            jsonStreamParseMock.mockReturnValue(parser as any);
+
+            const response = {
+                on: vi.fn(),
                 pipe: vi.fn().mockReturnThis(),
                 statusCode: 200,
             };
 
-            const mockJSONStream = {
-                on: vi.fn((event, callback) => {
-                    if (event === 'data') {
-                        callback({ confidence: 0.95, tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }] });
-                        callback('some text');
-                        callback('FINAL_TRANSCRIPTION');
-                    } else if (event === 'end') {
-                        callback();
-                    }
-                }),
-            };
-
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
-                callback(mockResponse);
+            requestMock.mockImplementation((_options, callback) => {
+                callback(response as any);
                 return {
                     end: vi.fn(),
                     on: vi.fn(),
                 };
             });
 
-            vi.spyOn(JSONStream, 'parse').mockReturnValue(mockJSONStream as any);
+            const resultPromise = dictation(filePath, options);
 
-            const result = await dictation(filePath, options);
+            parserHandlers.data?.({
+                confidence: 0.95,
+                tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
+            });
+            parserHandlers.data?.('some text');
+            parserHandlers.data?.('FINAL_TRANSCRIPTION');
+            parserHandlers.end?.();
+
+            const result = await resultPromise;
 
             expect(result).toEqual({
                 confidence: 0.95,
                 text: ' some text',
                 tokens: [{ confidence: 0.9, end: 5, start: 0, token: 'test' }],
             });
+            expect(response.pipe).toHaveBeenCalledWith(parser);
         });
 
         it('should handle HTTP error', async () => {
-            const mockResponse = {
+            const response = {
+                on: vi.fn(),
                 pipe: vi.fn().mockReturnThis(),
                 statusCode: 500,
             };
 
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
-                callback(mockResponse);
+            requestMock.mockImplementation((_options, callback) => {
+                callback(response as any);
                 return {
                     on: vi.fn(),
-                    pipe: vi.fn().mockReturnThis(),
+                    pipe: vi.fn(),
                 };
             });
 
-            await expect(dictation(filePath, options)).rejects.toEqual(new Error('HTTP error! status: 500'));
+            await expect(dictation(filePath, options)).rejects.toThrow('HTTP error! status: 500');
         });
 
         it('should handle https request error', async () => {
-            vi.spyOn(https, 'request').mockImplementation(() => {
+            requestMock.mockImplementation(() => {
                 const req = {
                     end: vi.fn(),
-                    on: vi.fn((event, callback) => {
+                    on: (event: string, handler: (error: Error) => void) => {
                         if (event === 'error') {
-                            callback(new Error('test error'));
+                            handler(new Error('test error'));
                         }
-                    }),
-                };
-                return req as any;
+                        return req;
+                    },
+                } as const;
+
+                return req;
             });
 
-            await expect(dictation(filePath, options)).rejects.toEqual(new Error('test error'));
+            await expect(dictation(filePath, options)).rejects.toThrow('test error');
         });
 
         it('should handle JSONStream error', async () => {
-            const mockResponse = {
+            const parserHandlers: Record<string, (value?: any) => void> = {};
+            const parser = {
+                on: (event: string, handler: (value?: unknown) => void) => {
+                    parserHandlers[event] = handler;
+                    return parser;
+                },
+            };
+
+            jsonStreamParseMock.mockReturnValue(parser as any);
+
+            const response = {
+                on: vi.fn(),
                 pipe: vi.fn().mockReturnThis(),
                 statusCode: 200,
             };
 
-            const mockJSONStream = {
-                on: vi.fn((event, callback) => {
-                    if (event === 'error') {
-                        callback(new Error('test error'));
-                    }
-                }),
-                parse: vi.fn().mockReturnThis(),
-            };
-
-            // @ts-expect-error ignore
-            vi.spyOn(https, 'request').mockImplementation((_options, callback: any) => {
-                callback(mockResponse);
+            requestMock.mockImplementation((_options, callback) => {
+                callback(response as any);
                 return {
+                    end: vi.fn(),
                     on: vi.fn(),
-                    pipe: vi.fn().mockReturnThis(),
                 };
             });
 
-            vi.spyOn(JSONStream, 'parse').mockReturnValue(mockJSONStream as any);
+            const promise = dictation(filePath, options);
 
-            await expect(dictation(filePath, options)).rejects.toEqual(new Error('test error'));
+            parserHandlers.error?.(new Error('test error'));
+
+            await expect(promise).rejects.toThrow('test error');
         });
     });
 });

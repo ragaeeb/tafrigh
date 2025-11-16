@@ -1,11 +1,9 @@
-import { defineConfig } from 'tsup';
-
-export default defineConfig({
+export default {
     clean: true,
     dts: true,
-    entry: ['src/index.ts'],
+    entries: ['src/index.ts'],
     format: ['esm'],
     minify: true,
     sourcemap: true,
     target: 'esnext',
-});
+};
