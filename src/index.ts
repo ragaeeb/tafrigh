@@ -1,6 +1,5 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, type ReadStream } from 'node:fs';
 import path from 'node:path';
-import type { Readable } from 'node:stream';
 import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 
 import { setApiKeys } from './apiKeys.js';
@@ -30,7 +29,7 @@ export const init = (options: { apiKeys: string[] }) => {
  * timestamps. It handles preprocessing the audio, splitting it into chunks, and
  * transcribing each chunk using Wit.ai's API.
  *
- * @param {string | Readable} content - Path to audio file, URL, or readable stream
+ * @param {string | ReadStream} content - Path to audio file, URL, or readable stream
  * @param {TranscribeOptions} [options] - Configuration options for transcription
  * @returns {Promise<Array>} - Promise resolving to an array of transcript segments
  * @throws {Error} - If transcription fails or if options validation fails
@@ -48,7 +47,7 @@ export const init = (options: { apiKeys: string[] }) => {
  * console.log(transcript);
  * // [{ text: "Hello world", start: 0, end: 2.5 }, ...]
  */
-export const transcribe = async (content: Readable | string, options?: TranscribeOptions) => {
+export const transcribe = async (content: ReadStream | string, options?: TranscribeOptions) => {
     logger.info(options, `transcribe ${content} (${typeof content})`);
 
     validateTranscribeFileOptions(options);
