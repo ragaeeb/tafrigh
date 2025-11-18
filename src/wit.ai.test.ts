@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock, vi } from 'bun:test';
+import { beforeEach, describe, expect, it, mock, vi } from 'bun:test';
 
 const requestMock = vi.fn();
 const createReadStreamMock = vi.fn();
@@ -25,12 +25,6 @@ describe('wit.ai', () => {
     beforeEach(() => {
         requestMock.mockReset();
         createReadStreamMock.mockReset().mockReturnValue({ pipe: vi.fn() });
-        jsonStreamParseMock.mockReset();
-    });
-
-    afterEach(() => {
-        requestMock.mockReset();
-        createReadStreamMock.mockReset();
         jsonStreamParseMock.mockReset();
     });
 

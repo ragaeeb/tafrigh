@@ -22,7 +22,7 @@
 - Error handling: throw typed errors (`TranscriptionError`, etc.) and propagate causes. Avoid swallowing stack traces.
 - Logging is performed through `src/utils/logger.ts` (Pino). Do not instantiate additional loggers outside that helper.
 - Tests should rely on Bun's `bun:test` primitives (`describe`, `it`, `mock.module`, etc.) and avoid global state leakage. Mock Wit.ai/network access with inline helpers.
-- Follow Biome's formatting (4-space indentation, 120 column width, single quotes). Run `bun run lint --apply` when you change more than a few files.
+- Follow Biome's formatting (4-space indentation, 120-column width, single quotes). Run `bun run lint --apply` when you change more than a few files.
 
 ## Pull requests & verification
 - Before committing, run:

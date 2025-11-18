@@ -242,29 +242,6 @@ Transcribes audio content and returns an array of transcript segments.
 
 Adjust the level of logging output by setting the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
 
-## API Reference
-
-### `init(options: { apiKeys: string[] })`
-
-Configure the library with one or more Wit.ai API keys. You can call this once during application startup or rely on environment variables and `setApiKeys` directly. Internally this seeds the round-robin key pool used by the transcriber.
-
-### `transcribe(content: string | Readable, options?: TranscribeOptions)`
-
-Runs the full transcription pipeline and returns ordered `Segment[]` objects. Use the `options` bag to control concurrency, retries, preprocessing hooks, and silence detection thresholds.
-
-### `resumeFailedTranscriptions(result: TranscribeAudioChunksResult, options?: Partial<TranscribeAudioChunksOptions>)`
-
-Accepts a partial result from `transcribe` (or direct `transcribeAudioChunks` usage) and reprocesses only the failed chunks. This makes it easy to retry temporary Wit.ai errors without repeating successful work.
-
-### `TranscriptionError`
-
-Errors thrown by `transcribe` include the original failures, successful transcripts, and the working directory path. This enables custom recovery flows such as inspecting the generated chunks or calling `resumeFailedTranscriptions` later on.
-
-### Low-level helpers
-
-- `speechToText` and `dictation` provide thin wrappers around Wit.ai endpoints when you need raw API access.
-- Utility constants such as `MAX_CHUNK_DURATION` and `MIN_CHUNK_DURATION` help enforce valid chunking parameters in your own tooling.
-
 ## Example Transcript Output
 
 The transcription result is returned as an array of segment objects:

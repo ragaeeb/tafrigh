@@ -14,7 +14,7 @@ e2eDescribe('e2e', () => {
 
             expect(result.text).toBeDefined();
             expect(result.confidence).toBeDefined();
-            expect((result.tokens || []).length > 6).toBe(true);
+            expect((result.tokens || []).length > 6).toBeTrue();
         }, 10000);
     });
 

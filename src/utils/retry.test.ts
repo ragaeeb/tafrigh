@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock, vi } from 'bun:test';
 
-const setTimeoutMock = vi.fn<() => Promise<void>>().mockResolvedValue();
+const setTimeoutMock = vi.fn<(ms: number) => Promise<void>>().mockResolvedValue();
 
 mock.module('node:timers/promises', () => ({
     setTimeout: setTimeoutMock,

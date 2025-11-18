@@ -189,8 +189,9 @@ describe('index', () => {
                 await fs.rm(transcriptionError.outputDir!, { force: true, recursive: true });
             });
         });
-    });
-    afterAll(() => {
-        transcribeAudioChunksSpy.mockRestore();
+
+        afterAll(() => {
+            transcribeAudioChunksSpy.mockRestore();
+        });
     });
 });

@@ -206,7 +206,7 @@ describe('transcriber', () => {
                 });
 
                 expect(callbacks.onTranscriptionStarted).toHaveBeenCalledWith(mockChunkFiles.length);
-                expect(callbacks.onTranscriptionProgress.mock.calls).toHaveLength(mockChunkFiles.length);
+                expect(callbacks.onTranscriptionProgress).toHaveBeenCalledTimes(mockChunkFiles.length);
                 expect(callbacks.onTranscriptionFinished).toHaveBeenCalledWith(result.transcripts);
             });
         });
