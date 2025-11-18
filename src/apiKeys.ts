@@ -64,6 +64,7 @@ export const getNextApiKey = (): string => {
 export const setApiKeys = (apiKeys: string[]) => {
     WIT_AI_API_KEYS.length = 0;
     WIT_AI_API_KEYS.push(...apiKeys);
+    currentKeyIndex = 0;
 
     validateApiKeys();
 };

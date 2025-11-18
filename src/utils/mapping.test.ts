@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 
-import { WitAiResponse } from '../types';
-import { mapWitResponseToSegment } from './mapping';
+import type { WitAiResponse } from '../types.js';
+import { mapWitResponseToSegment } from './mapping.js';
 
 describe('mapping', () => {
     describe('mapWitResponseToTranscript', () => {
