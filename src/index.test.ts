@@ -5,6 +5,12 @@ const mkdtempMock = vi.fn<() => Promise<string>>().mockResolvedValue('temp-dir')
 const rmMock = vi.fn<() => Promise<void>>().mockResolvedValue();
 
 mock.module('node:fs', () => ({
+    default: {
+        promises: {
+            mkdtemp: mkdtempMock,
+            rm: rmMock,
+        },
+    },
     promises: {
         mkdtemp: mkdtempMock,
         rm: rmMock,
