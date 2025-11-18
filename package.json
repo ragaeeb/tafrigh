@@ -44,8 +44,7 @@
     "scripts": {
         "build": "tsdown",
         "e2e": "RUN_E2E=true bun test testing/e2e.test.ts",
-        "lint": "biome check .",
-        "test": "bun test src"
+        "lint": "biome check ."
     },
     "source": "src/index.ts",
     "type": "module",
