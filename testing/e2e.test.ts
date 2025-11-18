@@ -5,14 +5,16 @@ import { transcribe } from '../src/index.js';
 import { MAX_CHUNK_DURATION } from '../src/utils/constants.js';
 import { speechToText } from '../src/wit.ai.js';
 
-describe('e2e', () => {
+const e2eDescribe = process.env.RUN_E2E === 'true' ? describe : describe.skip;
+
+e2eDescribe('e2e', () => {
     describe('speechToText', () => {
         it('should call the Wit.ai API with the correct parameters and return the text', async () => {
             const result = await speechToText('testing/khutbah_chunk1.wav', { apiKey: getNextApiKey() });
 
             expect(result.text).toBeDefined();
             expect(result.confidence).toBeDefined();
-            expect((result.tokens || []).length > 6).toBe(true);
+            expect((result.tokens || []).length > 6).toBeTrue();
         }, 10000);
     });
 

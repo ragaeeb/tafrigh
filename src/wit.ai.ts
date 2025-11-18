@@ -1,7 +1,8 @@
-import JSONStream from 'jsonstream-next';
 import fs from 'node:fs';
 import https from 'node:https';
 import { URL } from 'node:url';
+
+import JSONStream from 'jsonstream-next';
 
 import type { WitAiResponse } from './types.js';
 
@@ -11,6 +12,45 @@ interface SpeechToTextOptions {
 
 const MARKER_FINAL_TRANSCRIPTION = 'FINAL_TRANSCRIPTION';
 
+const applyDictationChunk = (chunk: unknown, current: WitAiResponse, final: WitAiResponse): WitAiResponse => {
+    if (chunk === true) {
+        return {};
+    }
+
+    if (chunk === MARKER_FINAL_TRANSCRIPTION) {
+        if (current.tokens && current.tokens.length > 0) {
+            final.tokens?.push(...current.tokens);
+        }
+
+        final.text += ` ${current.text}`;
+        final.confidence = current.confidence;
+
+        return {};
+    }
+
+    if (typeof chunk === 'string') {
+        current.text = chunk;
+        return current;
+    }
+
+    if (chunk && typeof chunk === 'object') {
+        Object.assign(current, chunk);
+        return current;
+    }
+
+    return current;
+};
+
+/**
+ * Builds the base HTTP headers required for Wit.ai speech endpoints.
+ *
+ * The content type is automatically adjusted based on the file extension so that
+ * the Wit.ai API receives the correct media metadata for each request.
+ *
+ * @param {string} filePath - Absolute or relative path to the audio file being uploaded
+ * @param {SpeechToTextOptions} options - Authentication options containing the Wit.ai API key
+ * @returns {Record<string, string>} A header map containing authorization and content type information
+ */
 const getCommonHeaders = (filePath: string, options: SpeechToTextOptions): Record<string, string> => {
     const result = {
         Authorization: `Bearer ${options.apiKey}`,
@@ -24,6 +64,16 @@ const getCommonHeaders = (filePath: string, options: SpeechToTextOptions): Recor
     return result;
 };
 
+/**
+ * Submits an audio file to the Wit.ai speech endpoint and returns the parsed transcript.
+ *
+ * This helper is best suited for smaller files where streaming chunked responses is unnecessary.
+ *
+ * @param {string} filePath - Path to the audio file that should be transcribed
+ * @param {SpeechToTextOptions} options - Authentication options containing the Wit.ai API key
+ * @returns {Promise<WitAiResponse>} The parsed transcription data returned from Wit.ai
+ * @throws {Error} When the HTTP request fails or Wit.ai returns a non-success status code
+ */
 export const speechToText = async (filePath: string, options: SpeechToTextOptions): Promise<WitAiResponse> => {
     const headers = {
         ...getCommonHeaders(filePath, options),
@@ -67,6 +117,17 @@ export const speechToText = async (filePath: string, options: SpeechToTextOption
     });
 };
 
+/**
+ * Streams an audio file to the Wit.ai dictation endpoint and aggregates incremental responses.
+ *
+ * Unlike {@link speechToText}, this function processes streamed JSON markers from Wit.ai to
+ * combine partial transcripts into a final result with token level detail.
+ *
+ * @param {string} filePath - Path to the audio file to be streamed
+ * @param {SpeechToTextOptions} options - Authentication options containing the Wit.ai API key
+ * @returns {Promise<WitAiResponse>} The combined final transcript with confidence metadata
+ * @throws {Error} If the HTTP request fails, the server responds with an error, or the JSON stream errors
+ */
 export async function dictation(filePath: string, options: SpeechToTextOptions): Promise<WitAiResponse> {
     const stream = fs.createReadStream(filePath);
 
@@ -94,17 +155,7 @@ export async function dictation(filePath: string, options: SpeechToTextOptions):
             res.pipe(parser);
 
             parser.on('data', (chunk) => {
-                if (chunk === true) {
-                    currentObject = {};
-                } else if (chunk === MARKER_FINAL_TRANSCRIPTION) {
-                    finalObject.tokens?.push(...(currentObject.tokens || []));
-                    finalObject.text += ` ${currentObject.text}`;
-                    finalObject.confidence = currentObject.confidence;
-                } else if (typeof chunk === 'string') {
-                    currentObject['text'] = chunk;
-                } else if (chunk && typeof chunk === 'object') {
-                    Object.assign(currentObject, chunk);
-                }
+                currentObject = applyDictationChunk(chunk, currentObject, finalObject);
             });
 
             parser.on('end', () => {

@@ -3,10 +3,11 @@
 [![wakatime](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be.svg)](https://wakatime.com/badge/user/a0b906ce-b8e7-4463-8bce-383238df6d4b/project/ff26a908-ad4b-4da5-9ad4-5283697583be)
 ![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)
 [![E2E](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/e2e.yml)
-[![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml) ![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh)
+[![Node.js CI](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml/badge.svg)](https://github.com/ragaeeb/tafrigh/actions/workflows/build.yml)
+![GitHub License](https://img.shields.io/github/license/ragaeeb/tafrigh)
 ![GitHub Release](https://img.shields.io/github/v/release/ragaeeb/tafrigh)
 [![codecov](https://codecov.io/github/ragaeeb/tafrigh/graph/badge.svg?token=9DWYN1ETDS)](https://codecov.io/github/ragaeeb/tafrigh)
-[![Size](https://deno.bundlejs.com/badge?q=tafrigh@4.0.2&badge=detailed)](https://bundlejs.com/?q=tafrigh%404.0.2)
+[![Size](https://deno.bundlejs.com/badge?q=tafrigh@latest&badge=detailed)](https://bundlejs.com/?q=tafrigh%40latest)
 ![typescript](https://badgen.net/badge/icon/typescript?icon=typescript&label&color=blue)
 ![npm](https://img.shields.io/npm/dm/tafrigh)
 ![GitHub issues](https://img.shields.io/github/issues/ragaeeb/tafrigh)
@@ -19,10 +20,12 @@
 
 - **Audio Splitting**: Automatically splits audio files into manageable chunks based on silence detection, which is ideal for services that impose file or duration size limits.
 - **Noise Reduction**: Apply configurable noise reduction and dialogue enhancement to improve transcription accuracy.
-- **Multiple Inputs Supported**: Supports streams, remote media file urls or a local media file paths.
-- **Transcription**: Seamlessly integrates with Wit.ai to transcribe audio chunks, returning results as structured transcript segments.
-- **Smart Concurrency**: Supports cycling between multiple Wit.ai API keys to avoid rate limits.
-- **Flexible Configuration**: Offers a range of options to control audio processing, silence detection, chunk duration, and more.
+- **Multiple Inputs Supported**: Supports streams, remote media file URLs, or local media file paths.
+- **End-to-end Transcription Pipeline**: The `transcribe` helper formats media, splits it, transcribes each chunk, and yields typed segment objects ready for downstream consumption.
+- **Smart Concurrency & Key Rotation**: Cycle through multiple Wit.ai API keys, control worker concurrency, and resume failed jobs with `resumeFailedTranscriptions`.
+- **Reliable Retries**: Automatic exponential backoff protects against transient API failures and surfaces partial progress when errors persist.
+- **Rich Error Reporting**: Failures raise a `TranscriptionError` that captures failed chunks, successful transcripts, and the working directory for debugging.
+- **Flexible Configuration**: Tune chunk duration, silence detection, preprocessing callbacks, retry limits, and more through typed options.
 - **Logging Control**: Uses the `pino` logging library, with logging levels configurable via environment variables.
 
 ## Installation
@@ -272,6 +275,12 @@ Each segment contains:
 ## Contributing
 
 Contributions are welcome! Please make sure your contributions adhere to the coding standards and are accompanied by relevant tests.
+
+## Development
+
+- Build the library output with `bun run build`. This executes `scripts/build.ts`, a lightweight tsdown-compatible runner that bundles the entries declared in `tsdown.config.mjs` and emits `.d.ts` files through `tsc`.
+- Run the unit tests with `bun test`. End-to-end tests are skipped by default; set `RUN_E2E=true` before running tests to exercise them against a real Wit.ai account and local `ffmpeg` installation.
+- Lint and format the project with `bun run lint`.
 
 ## License
 
