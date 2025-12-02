@@ -5,8 +5,8 @@ import { formatMedia, splitFileOnSilences } from 'ffmpeg-simplified';
 import { setApiKeys } from './apiKeys.js';
 import { TranscriptionError } from './errors.js';
 import { transcribeAudioChunks } from './transcriber.js';
-import type { TranscribeOptions } from './types.js';
-import logger from './utils/logger.js';
+import type { Logger, TranscribeOptions } from './types.js';
+import logger, { setLogger } from './utils/logger.js';
 import { validateTranscribeFileOptions } from './utils/validation.js';
 
 /**
@@ -14,12 +14,16 @@ import { validateTranscribeFileOptions } from './utils/validation.js';
  *
  * @param {Object} options - Configuration options for initialization
  * @param {string[]} options.apiKeys - Array of Wit.ai API keys to use for transcription
+ * @param {Logger} [options.logger] - Optional custom logger instance for logging library operations
  * @example
  * import { init } from 'tafrigh';
- * init({ apiKeys: ['your-wit-ai-key'] });
+ * init({ apiKeys: ['your-wit-ai-key'], logger: console });
  */
-export const init = (options: { apiKeys: string[] }) => {
+export const init = (options: { apiKeys: string[]; logger?: Logger }) => {
     setApiKeys(options.apiKeys);
+    if (options.logger) {
+        setLogger(options.logger);
+    }
 };
 
 /**
@@ -48,7 +52,7 @@ export const init = (options: { apiKeys: string[] }) => {
  * // [{ text: "Hello world", start: 0, end: 2.5 }, ...]
  */
 export const transcribe = async (content: ReadStream | string, options?: TranscribeOptions) => {
-    logger.info(options, `transcribe ${content} (${typeof content})`);
+    logger.info?.(`transcribe ${content} (${typeof content}) with options: ${JSON.stringify(options)}`);
 
     validateTranscribeFileOptions(options);
 
@@ -58,7 +62,7 @@ export const transcribe = async (content: ReadStream | string, options?: Transcr
 
     try {
         outputDir = await fs.mkdtemp('tafrigh');
-        logger.debug(`Using ${outputDir}`);
+        logger.debug?.(`Using ${outputDir}`);
 
         const filePath = await formatMedia(
             content,
@@ -72,7 +76,7 @@ export const transcribe = async (content: ReadStream | string, options?: Transcr
         );
         const chunkFiles = await splitFileOnSilences(filePath, outputDir, options?.splitOptions, options?.callbacks);
 
-        logger.debug(chunkFiles, `Generated chunks`);
+        logger.debug?.(`Generated chunks: ${JSON.stringify(chunkFiles)}`);
 
         if (chunkFiles.length === 0) {
             return [];
@@ -97,7 +101,7 @@ export const transcribe = async (content: ReadStream | string, options?: Transcr
         return transcripts;
     } finally {
         if (shouldCleanup && outputDir) {
-            logger.info(`Cleaning up ${outputDir}`);
+            logger.info?.(`Cleaning up ${outputDir}`);
             await fs.rm(outputDir, { force: true, recursive: true });
         }
     }

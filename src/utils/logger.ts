@@ -1,9 +1,26 @@
-import process from 'node:process';
-import pino, { type Logger } from 'pino';
+import type { Logger } from '../types.js';
 
-const logger: Logger = pino({
-    base: { hostname: undefined, pid: undefined }, // This will remove pid and hostname but keep time
-    level: process.env.LOG_LEVEL || 'info',
-});
+// Default no-op logger
+let logger: Logger = {
+    debug: () => {},
+    error: () => {},
+    info: () => {},
+    trace: () => {},
+    warn: () => {},
+};
+
+/**
+ * Sets a custom logger instance for the library.
+ * @internal
+ */
+export const setLogger = (customLogger: Logger) => {
+    logger = customLogger;
+};
+
+/**
+ * Gets the current logger instance.
+ * @internal
+ */
+export const getLogger = (): Logger => logger;
 
 export default logger;

@@ -26,7 +26,8 @@
 - **Reliable Retries**: Automatic exponential backoff protects against transient API failures and surfaces partial progress when errors persist.
 - **Rich Error Reporting**: Failures raise a `TranscriptionError` that captures failed chunks, successful transcripts, and the working directory for debugging.
 - **Flexible Configuration**: Tune chunk duration, silence detection, preprocessing callbacks, retry limits, and more through typed options.
-- **Logging Control**: Uses the `pino` logging library, with logging levels configurable via environment variables.
+- **Logging Control**: Provide your own logger implementation (e.g., console, pino, winston) via the `init()` function for full control over logging output.
+
 
 ## Installation
 
@@ -198,6 +199,26 @@ Initializes the library with the necessary configuration.
         ```
         WIT_AI_API_KEYS="key1 key2 key3"
         ```
+    - **logger** (optional): A custom logger instance that implements the Logger interface. If not provided, logging will be disabled by default. You can pass any logger that implements the interface (console, pino, winston, etc.):
+        ```javascript
+        // Using console
+        init({ apiKeys: ['your-key'], logger: console });
+        
+        // Using pino
+        import pino from 'pino';
+        const logger = pino({ level: 'debug' });
+        init({ apiKeys: ['your-key'], logger });
+        
+        // Using a custom logger
+        const customLogger = {
+            info: (msg) => myLoggingService.log('INFO', msg),
+            debug: (msg) => myLoggingService.log('DEBUG', msg),
+            error: (msg) => myLoggingService.log('ERROR', msg),
+            warn: (msg) => myLoggingService.log('WARN', msg),
+        };
+        init({ apiKeys: ['your-key'], logger: customLogger });
+        ```
+
 
 ### `transcribe(content: string | Readable, options?: TranscribeOptions): Promise<Segment[]>`
 
@@ -238,10 +259,6 @@ Transcribes audio content and returns an array of transcript segments.
     - `onTranscriptionStarted(totalChunks: number): Promise<void>`: Fired just before the chunks are ready to be sent to `wit.ai` for transcriptions.
     - `onTranscriptionFinished(transcripts: Segment[]): Promise<void>`: Fired after all the transcriptions was processed. The `transcripts` represents the complete array of processed segments with all metadata.
     - `onTranscriptionProgress(chunkIndex: number): void`: Fired as each request is made to the `wit.ai` API with the `chunkIndex` represents the index with respect to the `totalChunks` value sent from the `onTranscriptionStarted` callback.
-
-### Logging
-
-Adjust the level of logging output by setting the `LOG_LEVEL` environment variable to values like `info`, `debug`, or `error`.
 
 ## Example Transcript Output
 

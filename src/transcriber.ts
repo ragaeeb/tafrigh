@@ -32,7 +32,7 @@ const requestNextTranscript = async (
 ): Promise<null | Segment> => {
     const response: WitAiResponse = await exponentialBackoffRetry(() => {
         const apiKey = getNextApiKey();
-        logger.info(`Calling dictation for ${chunk.filename} with key ${maskText(apiKey)}`);
+        logger.info?.(`Calling dictation for ${chunk.filename} with key ${maskText(apiKey)}`);
 
         return dictation(chunk.filename, { apiKey });
     }, retries);
@@ -65,7 +65,7 @@ const transcribeAudioChunksInSingleThread = async (
     const failures: FailedTranscription[] = [];
     const transcripts: Segment[] = [];
 
-    logger.debug(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
+    logger.debug?.(`transcribeAudioChunksInSingleThread for ${chunkFiles.length}`);
 
     for (const [index, chunk] of chunkFiles.entries()) {
         try {
@@ -73,12 +73,12 @@ const transcribeAudioChunksInSingleThread = async (
 
             if (transcript) {
                 transcripts.push(transcript);
-                logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+                logger.trace?.(`Transcript received for chunk: ${chunk.filename}`);
             } else {
-                logger.warn(`Skipping empty transcript`);
+                logger.warn?.(`Skipping empty transcript`);
             }
         } catch (error) {
-            logger.error(error, `Failed to transcribe chunk: ${chunk.filename}`);
+            logger.error?.(`Failed to transcribe chunk: ${chunk.filename} - ${error}`);
             failures.push({ chunk, error, index });
 
             if (callbacks?.onTranscriptionProgress) {
@@ -112,7 +112,7 @@ const transcribeAudioChunksWithConcurrency = async (
     callbacks?: Callbacks,
     retries?: number,
 ): Promise<TranscribeAudioChunksResult> => {
-    logger.debug(`transcribeAudioChunksWithConcurrency ${concurrency}`);
+    logger.debug?.(`transcribeAudioChunksWithConcurrency ${concurrency}`);
 
     const failures: FailedTranscription[] = [];
     const transcripts: Segment[] = [];
@@ -124,12 +124,12 @@ const transcribeAudioChunksWithConcurrency = async (
 
             if (transcript) {
                 transcripts.push(transcript);
-                logger.trace(`Transcript received for chunk: ${chunk.filename}`);
+                logger.trace?.(`Transcript received for chunk: ${chunk.filename}`);
             } else {
-                logger.warn(`Skipping empty transcript`);
+                logger.warn?.(`Skipping empty transcript`);
             }
         } catch (error) {
-            logger.error(error, `Failed to transcribe chunk: ${chunk.filename}`);
+            logger.error?.(`Failed to transcribe chunk: ${chunk.filename} - ${error}`);
             failures.push({ chunk, error, index });
 
             if (callbacks?.onTranscriptionProgress) {

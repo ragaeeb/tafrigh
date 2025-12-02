@@ -20,7 +20,7 @@
 - This is an **ESM + TypeScript** codebase. Prefer named exports, `async`/`await`, and immutable data structures.
 - Keep functions pure when practical and include concise **JSDoc** blocks for exported helpers, classes, and complex internal utilities.
 - Error handling: throw typed errors (`TranscriptionError`, etc.) and propagate causes. Avoid swallowing stack traces.
-- Logging is performed through `src/utils/logger.ts` (Pino). Do not instantiate additional loggers outside that helper.
+- Logging is performed through `src/utils/logger.ts`. The logger is configured via the `init()` function, allowing clients to provide any logger implementation they prefer. Do not instantiate additional loggers outside that helper.
 - Tests should rely on Bun's `bun:test` primitives (`describe`, `it`, `mock.module`, etc.) and avoid global state leakage. Mock Wit.ai/network access with inline helpers.
 - Follow Biome's formatting (4-space indentation, 120-column width, single quotes). Run `bun run lint --apply` when you change more than a few files.
 

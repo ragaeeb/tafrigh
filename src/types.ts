@@ -33,6 +33,23 @@ export interface Callbacks extends PreprocessingCallbacks, SplitOnSilenceCallbac
 }
 
 /**
+ * Logger interface for custom logging implementations.
+ * Compatible with the Logger interface from ffmpeg-simplified.
+ */
+export interface Logger {
+    /** Log a debug message */
+    debug?: (message: string, ...args: any[]) => void;
+    /** Log an error message */
+    error?: (message: string, ...args: any[]) => void;
+    /** Log an informational message */
+    info?: (message: string, ...args: any[]) => void;
+    /** Log a trace message */
+    trace?: (message: string, ...args: any[]) => void;
+    /** Log a warning message */
+    warn?: (message: string, ...args: any[]) => void;
+}
+
+/**
  * Represents a segment of transcribed audio with timing information.
  * May include detailed token-level information when available.
  */
